@@ -71,7 +71,7 @@
       margin-bottom: 0.5rem;
       text-transform: uppercase;
     }
-    #customFallaWrapper {
+    #customFallaWrapper, #customDispositivoWrapper {
       display: none;
     }
     .historial-item {
@@ -132,8 +132,11 @@
     .punto-group input {
       flex: 1;
     }
-    .email-form {
-      display: inline;
+    .datos-proyecto {
+      background-color: #e8f0fe;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
     }
   </style>
 </head>
@@ -154,6 +157,23 @@
 </div>
 
 <div class="container py-2 px-3" style="max-width: 560px;">
+
+  <!-- DATOS DEL PROYECTO (nuevo) -->
+  <div class="card p-3 mb-4">
+    <div class="datos-proyecto">
+      <span class="section-badge"><i class="bi bi-folder-fill me-1"></i>Datos del proyecto</span>
+      <div class="row g-2">
+        <div class="col-6">
+          <label class="form-label">Nombre del proyecto</label>
+          <input type="text" class="form-control" id="proyecto" placeholder="Ej: SOHO MALL" required />
+        </div>
+        <div class="col-6">
+          <label class="form-label">Técnico responsable</label>
+          <input type="text" class="form-control" id="tecnico" placeholder="Ej: John Doe" required />
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- formulario de captura -->
   <div class="card p-3 mb-4">
@@ -176,17 +196,18 @@
           <option>Otros</option>
         </select>
         <div id="customFallaWrapper" class="mt-2">
-          <input type="text" class="form-control" id="falla_custom" placeholder="Especificar falla..." maxlength="100" />
+          <input type="text" class="form-control" id="falla_custom" placeholder="Especificar tipo de falla..." maxlength="100" />
         </div>
       </div>
 
-      <!-- Dispositivo -->
+      <!-- Dispositivo (AHORA CON THERMAL DET Y OTROS) -->
       <div class="mb-2">
         <label class="form-label">Dispositivo</label>
         <select class="form-select" id="dispositivo" required>
           <option value="" disabled selected>— Seleccionar —</option>
           <option>Photo Detector</option>
           <option>Photo/Heat Detector</option>
+          <option>Thermal Det</option>
           <option>Manual Stations</option>
           <option>Nac Aom NS</option>
           <option>FORM C AOM NS</option>
@@ -194,7 +215,11 @@
           <option>Waterflow Sil</option>
           <option>N.O. Contacts</option>
           <option>Trbl Ack Sw</option>
+          <option>Otros</option>
         </select>
+        <div id="customDispositivoWrapper" class="mt-2">
+          <input type="text" class="form-control" id="dispositivo_custom" placeholder="Especificar dispositivo..." maxlength="100" />
+        </div>
       </div>
 
       <!-- Sitio y Nodo -->
@@ -264,7 +289,7 @@
   <!-- BOTÓN 2: Enviar por correo a mdmpgc@gmail.com (formato I2) -->
   <form id="emailForm" action="https://formsubmit.co/9119f2bf5196fc4aad24904700985e90" method="POST" class="email-form">
     <!-- Usamos el código que te dieron -->
-    <input type="hidden" name="_subject" value="📋 Reporte de Fallas - Formato I2">
+    <input type="hidden" name="_subject" id="asuntoCorreo" value="">
     <!-- Campo oculto para el cuerpo del mensaje -->
     <input type="hidden" name="texto_fallas" id="textoFallasInput" value="">
     <!-- Configuración para que FormSubmit no modifique el formato -->
@@ -285,12 +310,16 @@
 <script>
   (function() {
     // Elementos del formulario
+    const proyecto = document.getElementById('proyecto');
+    const tecnico = document.getElementById('tecnico');
     const tipoFalla = document.getElementById('tipo_falla');
     const customWrapper = document.getElementById('customFallaWrapper');
     const fallaCustom = document.getElementById('falla_custom');
+    const dispositivo = document.getElementById('dispositivo');
+    const customDispositivoWrapper = document.getElementById('customDispositivoWrapper');
+    const dispositivoCustom = document.getElementById('dispositivo_custom');
     const sitio = document.getElementById('sitio');
     const nodo = document.getElementById('nodo');
-    const dispositivo = document.getElementById('dispositivo');
     const puntoTipo = document.getElementById('punto_tipo');
     const puntoNum = document.getElementById('punto_num');
     const lazoRadios = document.getElementsByName('lazo');
@@ -299,6 +328,7 @@
     const btnAgregar = document.getElementById('btnAgregarHistorial');
     const btnEnviarEmail = document.getElementById('btnEnviarEmail');
     const emailForm = document.getElementById('emailForm');
+    const asuntoCorreo = document.getElementById('asuntoCorreo');
     const textoFallasInput = document.getElementById('textoFallasInput');
     const historialContainer = document.getElementById('historialContainer');
     const contadorSpan = document.getElementById('contadorFallas');
@@ -321,7 +351,6 @@
       if (!fechaHoraStr) return '—';
       const [fecha, hora] = fechaHoraStr.split('T');
       const [y, m, d] = fecha.split('-');
-      // Añadir segundos ":00" fijos para que coincida con I2
       return `${d}/${m}/${y.slice(2)} ${hora}:00`;
     }
 
@@ -343,6 +372,7 @@
       let html = '';
       ordenadas.forEach(f => {
         const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+        const dispositivoFinal = f.dispositivo === 'Otros' ? f.dispositivoCustom : f.dispositivo;
         const puntoFinal = formatearPunto(f.puntoTipo, f.puntoNum);
         const fechaFormateada = formatearFechaI2(f.fechaHora);
         
@@ -354,7 +384,7 @@
             </div>
             <div class="linea-inferior mt-1">
               <span class="badge-falla">${tipoFinal}</span>
-              <span>${f.dispositivo}</span>
+              <span>${dispositivoFinal}</span>
               <span><strong>${puntoFinal}</strong></span>
               <span>${f.lazo}</span>
               <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${fechaFormateada}</span>
@@ -369,8 +399,19 @@
 
     // Agregar falla
     function agregarFalla() {
+      // Validar proyecto y técnico
+      if (!proyecto.value.trim()) { mostrarMensaje('Nombre del proyecto es obligatorio', false); return; }
+      if (!tecnico.value.trim()) { mostrarMensaje('Nombre del técnico es obligatorio', false); return; }
+      
       if (!tipoFalla.value) { mostrarMensaje('Selecciona tipo de falla', false); return; }
+      
+      // Validar dispositivo
       if (!dispositivo.value) { mostrarMensaje('Selecciona dispositivo', false); return; }
+      if (dispositivo.value === 'Otros' && !dispositivoCustom.value.trim()) { 
+        mostrarMensaje('Especifica el dispositivo', false); 
+        return; 
+      }
+      
       if (!sitio.value.trim()) { mostrarMensaje('Escribe el sitio', false); return; }
       if (!nodo.value || nodo.value < 1 || nodo.value > 64) { mostrarMensaje('Nodo debe ser 1-64', false); return; }
       if (!puntoNum.value || puntoNum.value < 0 || puntoNum.value > 159) { mostrarMensaje('Punto debe ser 000-159', false); return; }
@@ -382,17 +423,28 @@
       if (!lazoSeleccionado) { mostrarMensaje('Selecciona L1 o L2', false); return; }
       if (!fechaHora.value) { mostrarMensaje('Selecciona fecha y hora', false); return; }
 
+      // Manejar "Otros" para tipo de falla
       let tipoFinal = tipoFalla.value;
-      let customValue = '';
+      let fallaCustomValue = '';
       if (tipoFalla.value === 'Otros') {
         if (!fallaCustom.value.trim()) { mostrarMensaje('Especifica el tipo de falla', false); return; }
-        customValue = fallaCustom.value.trim();
+        fallaCustomValue = fallaCustom.value.trim();
+      }
+
+      // Manejar "Otros" para dispositivo
+      let dispositivoFinal = dispositivo.value;
+      let dispositivoCustomValue = '';
+      if (dispositivo.value === 'Otros') {
+        dispositivoCustomValue = dispositivoCustom.value.trim();
       }
 
       const nuevaFalla = {
+        proyecto: proyecto.value.trim(),
+        tecnico: tecnico.value.trim(),
         tipoFalla: tipoFinal,
-        fallaCustom: customValue,
-        dispositivo: dispositivo.value,
+        fallaCustom: fallaCustomValue,
+        dispositivo: dispositivoFinal,
+        dispositivoCustom: dispositivoCustomValue,
         sitio: sitio.value.trim(),
         nodo: parseInt(nodo.value),
         puntoTipo: puntoTipo.value,
@@ -405,9 +457,22 @@
       actualizarHistorial();
       mostrarMensaje('✅ Falla agregada', true);
 
-      // Reset
-      form.reset();
+      // Reset formulario (solo los campos de falla, no proyecto/técnico)
+      tipoFalla.value = '';
+      dispositivo.value = '';
+      sitio.value = '';
+      nodo.value = '';
+      puntoNum.value = '';
+      
+      // Resetear radios
+      for (let radio of lazoRadios) {
+        radio.checked = false;
+      }
+      
       customWrapper.style.display = 'none';
+      customDispositivoWrapper.style.display = 'none';
+      fallaCustom.value = '';
+      dispositivoCustom.value = '';
       puntoTipo.value = 'M';
       
       // Reset fecha/hora
@@ -427,15 +492,22 @@
         return null;
       }
 
+      // Validar proyecto y técnico
+      if (!proyecto.value.trim() || !tecnico.value.trim()) {
+        mostrarMensaje('Completa proyecto y técnico', false);
+        return null;
+      }
+
       let textoCompleto = '';
       
       fallas.forEach((f, index) => {
         const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+        const dispositivoFinal = f.dispositivo === 'Otros' ? f.dispositivoCustom : f.dispositivo;
         const puntoFinal = formatearPunto(f.puntoTipo, f.puntoNum);
         const fechaFormateada = formatearFechaI2(f.fechaHora);
         
         // Primera línea: Tipo de falla y dispositivo (como en I2)
-        textoCompleto += `${tipoFinal}    ${f.dispositivo}    ${f.lazo}${puntoFinal} ${fechaFormateada}\n\n`;
+        textoCompleto += `${tipoFinal}    ${dispositivoFinal}    ${f.lazo}${puntoFinal} ${fechaFormateada}\n\n`;
         
         // Segunda línea: Node y sitio (como en I2)
         textoCompleto += `Node${String(f.nodo).padStart(2, '0')} - ${f.sitio}\n\n`;
@@ -449,7 +521,7 @@
       return textoCompleto;
     }
 
-    // Evento "Otros"
+    // Evento "Otros" para tipo de falla
     tipoFalla.addEventListener('change', () => {
       if (tipoFalla.value === 'Otros') {
         customWrapper.style.display = 'block';
@@ -461,6 +533,18 @@
       }
     });
 
+    // Evento "Otros" para dispositivo
+    dispositivo.addEventListener('change', () => {
+      if (dispositivo.value === 'Otros') {
+        customDispositivoWrapper.style.display = 'block';
+        dispositivoCustom.required = true;
+      } else {
+        customDispositivoWrapper.style.display = 'none';
+        dispositivoCustom.required = false;
+        dispositivoCustom.value = '';
+      }
+    });
+
     // Evento Agregar
     btnAgregar.addEventListener('click', agregarFalla);
     form.addEventListener('submit', (e) => e.preventDefault());
@@ -469,8 +553,17 @@
     btnEnviarEmail.addEventListener('click', (e) => {
       e.preventDefault(); // Prevenir envío inmediato
       
+      // Validar proyecto y técnico
+      if (!proyecto.value.trim() || !tecnico.value.trim()) {
+        mostrarMensaje('Completa proyecto y técnico', false);
+        return;
+      }
+      
       const textoI2 = prepararTextoI2();
       if (!textoI2) return;
+      
+      // Crear asunto: "Nombre del Proyecto - Nombre del Técnico"
+      asuntoCorreo.value = `${proyecto.value.trim()} - ${tecnico.value.trim()}`;
       
       // Poner el texto en el campo oculto
       textoFallasInput.value = textoI2;
@@ -478,7 +571,7 @@
       // Enviar el formulario
       emailForm.submit();
       
-      // Opcional: limpiar después de enviar
+      // Limpiar después de enviar
       setTimeout(() => {
         fallas = [];
         actualizarHistorial();
