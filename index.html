@@ -132,6 +132,9 @@
     .punto-group input {
       flex: 1;
     }
+    .email-form {
+      display: inline;
+    }
   </style>
 </head>
 <body>
@@ -258,20 +261,28 @@
     </div>
   </div>
 
-  <!-- BOTÓN 2: Enviar lista a Google Sheets -->
-  <button class="btn btn-success-custom w-100 text-white mb-2" id="btnEnviarLista">
-    <i class="bi bi-send-fill me-2"></i>Enviar lista a Google Sheets
-  </button>
+  <!-- BOTÓN 2: Enviar por correo a mdmpgc@gmail.com -->
+  <form id="emailForm" action="https://formsubmit.co/mdmpgc@gmail.com" method="POST" target="_blank" class="email-form">
+    <input type="hidden" name="_subject" value="📋 Reporte de Fallas">
+    <input type="hidden" name="_template" value="table">
+    <input type="hidden" name="_captcha" value="false">
+    <input type="hidden" name="_next" value="https://formsubmit.co/gracias">
+    <input type="hidden" name="datos_fallas" id="datosFallasInput" value="">
+    
+    <button type="submit" class="btn btn-success-custom w-100 text-white mb-2" id="btnEnviarEmail">
+      <i class="bi bi-envelope-fill me-2"></i>Enviar por correo a mdmpgc@gmail.com
+    </button>
+  </form>
 
   <p class="text-center text-muted mt-2" style="font-size:0.7rem;">
-    <i class="bi bi-shield-check me-1"></i>Datos solo en memoria, al recargar se reinician
+    <i class="bi bi-shield-check me-1"></i>Datos en memoria, al recargar se reinician
   </p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   (function() {
-    // Obtener elementos del DOM
+    // Elementos del formulario
     const tipoFalla = document.getElementById('tipo_falla');
     const customWrapper = document.getElementById('customFallaWrapper');
     const fallaCustom = document.getElementById('falla_custom');
@@ -284,14 +295,16 @@
     const fechaHora = document.getElementById('fecha_hora');
     const form = document.getElementById('faultForm');
     const btnAgregar = document.getElementById('btnAgregarHistorial');
-    const btnEnviar = document.getElementById('btnEnviarLista');
+    const btnEnviarEmail = document.getElementById('btnEnviarEmail');
+    const emailForm = document.getElementById('emailForm');
+    const datosFallasInput = document.getElementById('datosFallasInput');
     const historialContainer = document.getElementById('historialContainer');
     const contadorSpan = document.getElementById('contadorFallas');
 
-    // Array de fallas (SOLO EN MEMORIA, no guarda en localStorage)
+    // Array de fallas (solo en memoria)
     let fallas = [];
 
-    // Función para mostrar mensajes tipo toast
+    // Mostrar mensaje
     function mostrarMensaje(texto, exito) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
@@ -301,7 +314,7 @@
       new bootstrap.Toast(toast).show();
     }
 
-    // Formatear fecha de YYYY-MM-DDTHH:mm a DD/MM/AA HH:mm
+    // Formatear fecha
     function formatearFecha(fechaHoraStr) {
       if (!fechaHoraStr) return '—';
       const [fecha, hora] = fechaHoraStr.split('T');
@@ -309,7 +322,7 @@
       return `${d}/${m}/${y.slice(2)} ${hora}`;
     }
 
-    // Actualizar el historial en pantalla
+    // Actualizar historial
     function actualizarHistorial() {
       if (fallas.length === 0) {
         historialContainer.innerHTML = '<p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>';
@@ -317,7 +330,6 @@
         return;
       }
 
-      // Ordenar por fecha (más reciente primero)
       const ordenadas = [...fallas].sort((a, b) => (a.fechaHora < b.fechaHora ? 1 : -1));
 
       let html = '';
@@ -346,69 +358,28 @@
       contadorSpan.innerText = `${fallas.length} ${fallas.length === 1 ? 'registro' : 'registros'}`;
     }
 
-    // Función para agregar una falla al historial
+    // Agregar falla
     function agregarFalla() {
-      // Validar tipo de falla
-      if (!tipoFalla.value) {
-        mostrarMensaje('Selecciona tipo de falla', false);
-        return;
-      }
+      if (!tipoFalla.value) { mostrarMensaje('Selecciona tipo de falla', false); return; }
+      if (!dispositivo.value) { mostrarMensaje('Selecciona dispositivo', false); return; }
+      if (!sitio.value.trim()) { mostrarMensaje('Escribe el sitio', false); return; }
+      if (!nodo.value || nodo.value < 1 || nodo.value > 64) { mostrarMensaje('Nodo debe ser 1-64', false); return; }
+      if (!puntoNum.value || puntoNum.value < 0 || puntoNum.value > 159) { mostrarMensaje('Punto debe ser 000-159', false); return; }
       
-      // Validar dispositivo
-      if (!dispositivo.value) {
-        mostrarMensaje('Selecciona dispositivo', false);
-        return;
-      }
-      
-      // Validar sitio
-      if (!sitio.value.trim()) {
-        mostrarMensaje('Escribe el sitio', false);
-        return;
-      }
-      
-      // Validar nodo
-      if (!nodo.value || nodo.value < 1 || nodo.value > 64) {
-        mostrarMensaje('Nodo debe ser entre 1 y 64', false);
-        return;
-      }
-      
-      // Validar punto número
-      if (!puntoNum.value || puntoNum.value < 0 || puntoNum.value > 159) {
-        mostrarMensaje('Punto debe ser entre 000 y 159', false);
-        return;
-      }
-      
-      // Validar lazo (radio)
       let lazoSeleccionado = null;
       for (let radio of lazoRadios) {
-        if (radio.checked) {
-          lazoSeleccionado = radio.value;
-          break;
-        }
+        if (radio.checked) { lazoSeleccionado = radio.value; break; }
       }
-      if (!lazoSeleccionado) {
-        mostrarMensaje('Selecciona L1 o L2', false);
-        return;
-      }
-      
-      // Validar fecha y hora
-      if (!fechaHora.value) {
-        mostrarMensaje('Selecciona fecha y hora', false);
-        return;
-      }
+      if (!lazoSeleccionado) { mostrarMensaje('Selecciona L1 o L2', false); return; }
+      if (!fechaHora.value) { mostrarMensaje('Selecciona fecha y hora', false); return; }
 
-      // Manejar el caso "Otros"
       let tipoFinal = tipoFalla.value;
       let customValue = '';
       if (tipoFalla.value === 'Otros') {
-        if (!fallaCustom.value.trim()) {
-          mostrarMensaje('Especifica el tipo de falla', false);
-          return;
-        }
+        if (!fallaCustom.value.trim()) { mostrarMensaje('Especifica el tipo de falla', false); return; }
         customValue = fallaCustom.value.trim();
       }
 
-      // Crear objeto de falla
       const nuevaFalla = {
         tipoFalla: tipoFinal,
         fallaCustom: customValue,
@@ -421,21 +392,16 @@
         fechaHora: fechaHora.value
       };
 
-      // Agregar al array
       fallas.push(nuevaFalla);
-      
-      // Actualizar historial
       actualizarHistorial();
-      
-      // Mostrar mensaje de éxito
-      mostrarMensaje('✅ Falla agregada al historial', true);
+      mostrarMensaje('✅ Falla agregada', true);
 
-      // Resetear formulario
+      // Reset
       form.reset();
       customWrapper.style.display = 'none';
       puntoTipo.value = 'M';
       
-      // Poner fecha/hora actual
+      // Reset fecha/hora
       const ahora = new Date();
       const año = ahora.getFullYear();
       const mes = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -445,44 +411,34 @@
       fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
     }
 
-    // Función para enviar a Google Sheets
-    async function enviarLista() {
+    // Preparar datos para el correo
+    function prepararDatosParaEmail() {
       if (fallas.length === 0) {
         mostrarMensaje('No hay fallas para enviar', false);
-        return;
+        return false;
       }
 
-      // Deshabilitar botón
-      btnEnviar.disabled = true;
-      btnEnviar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+      // Crear un texto con todas las fallas
+      let textoFallas = "📋 REPORTE DE FALLAS\n\n";
+      fallas.forEach((f, index) => {
+        const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+        const puntoFinal = `${f.puntoTipo}${String(f.puntoNum).padStart(3, '0')}`;
+        
+        textoFallas += `--- FALLA ${index + 1} ---\n`;
+        textoFallas += `Tipo: ${tipoFinal}\n`;
+        textoFallas += `Dispositivo: ${f.dispositivo}\n`;
+        textoFallas += `Sitio: ${f.sitio}\n`;
+        textoFallas += `Nodo: ${f.nodo}\n`;
+        textoFallas += `Punto: ${puntoFinal}\n`;
+        textoFallas += `Lazo: ${f.lazo}\n`;
+        textoFallas += `Fecha/Hora: ${formatearFecha(f.fechaHora)}\n\n`;
+      });
 
-      try {
-        // ⚠️ CAMBIA ESTA URL POR LA DE TU GOOGLE SHEETS
-        const response = await fetch('https://tu-url-de-google-sheets.com', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fallas: fallas })
-        });
-
-        if (response.ok) {
-          mostrarMensaje('✅ Lista enviada correctamente', true);
-          // Limpiar historial después de enviar
-          fallas = [];
-          actualizarHistorial();
-        } else {
-          mostrarMensaje('Error al enviar. Intenta de nuevo.', false);
-        }
-      } catch (error) {
-        mostrarMensaje('Error de conexión. Verifica tu URL.', false);
-        console.error(error);
-      } finally {
-        // Restaurar botón
-        btnEnviar.disabled = false;
-        btnEnviar.innerHTML = '<i class="bi bi-send-fill me-2"></i>Enviar lista a Google Sheets';
-      }
+      datosFallasInput.value = textoFallas;
+      return true;
     }
 
-    // Evento para mostrar campo "Otros"
+    // Evento "Otros"
     tipoFalla.addEventListener('change', () => {
       if (tipoFalla.value === 'Otros') {
         customWrapper.style.display = 'block';
@@ -494,16 +450,23 @@
       }
     });
 
-    // Evento click del botón Agregar
+    // Evento Agregar
     btnAgregar.addEventListener('click', agregarFalla);
-
-    // Prevenir envío del formulario
     form.addEventListener('submit', (e) => e.preventDefault());
 
-    // Evento click del botón Enviar
-    btnEnviar.addEventListener('click', enviarLista);
+    // Evento Enviar por correo
+    btnEnviarEmail.addEventListener('click', (e) => {
+      if (!prepararDatosParaEmail()) {
+        e.preventDefault();
+        return false;
+      }
+      // Pequeña pausa para asegurar que el input se llenó
+      setTimeout(() => {
+        emailForm.submit();
+      }, 100);
+    });
 
-    // Inicializar fecha/hora actual
+    // Inicializar fecha
     const ahora = new Date();
     const año = ahora.getFullYear();
     const mes = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -512,7 +475,6 @@
     const minutos = String(ahora.getMinutes()).padStart(2, '0');
     fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
 
-    // Inicializar historial vacío
     actualizarHistorial();
   })();
 </script>
