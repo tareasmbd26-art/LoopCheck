@@ -158,7 +158,7 @@
 
 <div class="container py-2 px-3" style="max-width: 560px;">
 
-  <!-- DATOS DEL PROYECTO (nuevo) -->
+  <!-- DATOS DEL PROYECTO -->
   <div class="card p-3 mb-4">
     <div class="datos-proyecto">
       <span class="section-badge"><i class="bi bi-folder-fill me-1"></i>Datos del proyecto</span>
@@ -200,7 +200,7 @@
         </div>
       </div>
 
-      <!-- Dispositivo (AHORA CON THERMAL DET Y OTROS) -->
+      <!-- Dispositivo -->
       <div class="mb-2">
         <label class="form-label">Dispositivo</label>
         <select class="form-select" id="dispositivo" required>
@@ -286,13 +286,10 @@
     </div>
   </div>
 
-  <!-- BOTÓN 2: Enviar por correo a mdmpgc@gmail.com (formato I2) -->
+  <!-- BOTÓN 2: Enviar por correo a mdmpgc@gmail.com -->
   <form id="emailForm" action="https://formsubmit.co/9119f2bf5196fc4aad24904700985e90" method="POST" class="email-form">
-    <!-- Usamos el código que te dieron -->
     <input type="hidden" name="_subject" id="asuntoCorreo" value="">
-    <!-- Campo oculto para el cuerpo del mensaje -->
     <input type="hidden" name="texto_fallas" id="textoFallasInput" value="">
-    <!-- Configuración para que FormSubmit no modifique el formato -->
     <input type="hidden" name="_template" value="table">
     <input type="hidden" name="_captcha" value="false">
     
@@ -309,7 +306,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   (function() {
-    // Elementos del formulario
+    // Elementos
     const proyecto = document.getElementById('proyecto');
     const tecnico = document.getElementById('tecnico');
     const tipoFalla = document.getElementById('tipo_falla');
@@ -333,10 +330,8 @@
     const historialContainer = document.getElementById('historialContainer');
     const contadorSpan = document.getElementById('contadorFallas');
 
-    // Array de fallas (solo en memoria)
     let fallas = [];
 
-    // Mostrar mensaje
     function mostrarMensaje(texto, exito) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
@@ -346,7 +341,6 @@
       new bootstrap.Toast(toast).show();
     }
 
-    // Formatear fecha como en I2 (DD/MM/AA HH:MM:SS)
     function formatearFechaI2(fechaHoraStr) {
       if (!fechaHoraStr) return '—';
       const [fecha, hora] = fechaHoraStr.split('T');
@@ -354,12 +348,10 @@
       return `${d}/${m}/${y.slice(2)} ${hora}:00`;
     }
 
-    // Formatear punto como M000 o S000
     function formatearPunto(tipo, numero) {
       return `${tipo}${String(numero).padStart(3, '0')}`;
     }
 
-    // Actualizar historial
     function actualizarHistorial() {
       if (fallas.length === 0) {
         historialContainer.innerHTML = '<p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>';
@@ -397,15 +389,11 @@
       contadorSpan.innerText = `${fallas.length} ${fallas.length === 1 ? 'registro' : 'registros'}`;
     }
 
-    // Agregar falla
     function agregarFalla() {
-      // Validar proyecto y técnico
       if (!proyecto.value.trim()) { mostrarMensaje('Nombre del proyecto es obligatorio', false); return; }
       if (!tecnico.value.trim()) { mostrarMensaje('Nombre del técnico es obligatorio', false); return; }
       
       if (!tipoFalla.value) { mostrarMensaje('Selecciona tipo de falla', false); return; }
-      
-      // Validar dispositivo
       if (!dispositivo.value) { mostrarMensaje('Selecciona dispositivo', false); return; }
       if (dispositivo.value === 'Otros' && !dispositivoCustom.value.trim()) { 
         mostrarMensaje('Especifica el dispositivo', false); 
@@ -423,7 +411,6 @@
       if (!lazoSeleccionado) { mostrarMensaje('Selecciona L1 o L2', false); return; }
       if (!fechaHora.value) { mostrarMensaje('Selecciona fecha y hora', false); return; }
 
-      // Manejar "Otros" para tipo de falla
       let tipoFinal = tipoFalla.value;
       let fallaCustomValue = '';
       if (tipoFalla.value === 'Otros') {
@@ -431,7 +418,6 @@
         fallaCustomValue = fallaCustom.value.trim();
       }
 
-      // Manejar "Otros" para dispositivo
       let dispositivoFinal = dispositivo.value;
       let dispositivoCustomValue = '';
       if (dispositivo.value === 'Otros') {
@@ -457,14 +443,13 @@
       actualizarHistorial();
       mostrarMensaje('✅ Falla agregada', true);
 
-      // Reset formulario (solo los campos de falla, no proyecto/técnico)
+      // Reset
       tipoFalla.value = '';
       dispositivo.value = '';
       sitio.value = '';
       nodo.value = '';
       puntoNum.value = '';
       
-      // Resetear radios
       for (let radio of lazoRadios) {
         radio.checked = false;
       }
@@ -475,7 +460,6 @@
       dispositivoCustom.value = '';
       puntoTipo.value = 'M';
       
-      // Reset fecha/hora
       const ahora = new Date();
       const año = ahora.getFullYear();
       const mes = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -485,14 +469,13 @@
       fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
     }
 
-    // Preparar texto con formato IGUAL a I2
+    // 🔥 CORREGIDO: Ahora primero Node, luego la falla
     function prepararTextoI2() {
       if (fallas.length === 0) {
         mostrarMensaje('No hay fallas para enviar', false);
         return null;
       }
 
-      // Validar proyecto y técnico
       if (!proyecto.value.trim() || !tecnico.value.trim()) {
         mostrarMensaje('Completa proyecto y técnico', false);
         return null;
@@ -506,13 +489,12 @@
         const puntoFinal = formatearPunto(f.puntoTipo, f.puntoNum);
         const fechaFormateada = formatearFechaI2(f.fechaHora);
         
-        // Primera línea: Tipo de falla y dispositivo (como en I2)
-        textoCompleto += `${tipoFinal}    ${dispositivoFinal}    ${f.lazo}${puntoFinal} ${fechaFormateada}\n\n`;
-        
-        // Segunda línea: Node y sitio (como en I2)
+        // PRIMERO: Node y sitio (como en I2)
         textoCompleto += `Node${String(f.nodo).padStart(2, '0')} - ${f.sitio}\n\n`;
         
-        // Línea separadora opcional
+        // SEGUNDO: Tipo de falla y dispositivo (como en I2)
+        textoCompleto += `${tipoFinal}    ${dispositivoFinal}    ${f.lazo}${puntoFinal} ${fechaFormateada}\n\n`;
+        
         if (index < fallas.length - 1) {
           textoCompleto += `----------------------------------------\n\n`;
         }
@@ -521,7 +503,6 @@
       return textoCompleto;
     }
 
-    // Evento "Otros" para tipo de falla
     tipoFalla.addEventListener('change', () => {
       if (tipoFalla.value === 'Otros') {
         customWrapper.style.display = 'block';
@@ -533,7 +514,6 @@
       }
     });
 
-    // Evento "Otros" para dispositivo
     dispositivo.addEventListener('change', () => {
       if (dispositivo.value === 'Otros') {
         customDispositivoWrapper.style.display = 'block';
@@ -545,15 +525,12 @@
       }
     });
 
-    // Evento Agregar
     btnAgregar.addEventListener('click', agregarFalla);
     form.addEventListener('submit', (e) => e.preventDefault());
 
-    // Evento Enviar por correo - FORMATO I2
     btnEnviarEmail.addEventListener('click', (e) => {
-      e.preventDefault(); // Prevenir envío inmediato
+      e.preventDefault();
       
-      // Validar proyecto y técnico
       if (!proyecto.value.trim() || !tecnico.value.trim()) {
         mostrarMensaje('Completa proyecto y técnico', false);
         return;
@@ -562,16 +539,11 @@
       const textoI2 = prepararTextoI2();
       if (!textoI2) return;
       
-      // Crear asunto: "Nombre del Proyecto - Nombre del Técnico"
       asuntoCorreo.value = `${proyecto.value.trim()} - ${tecnico.value.trim()}`;
-      
-      // Poner el texto en el campo oculto
       textoFallasInput.value = textoI2;
       
-      // Enviar el formulario
       emailForm.submit();
       
-      // Limpiar después de enviar
       setTimeout(() => {
         fallas = [];
         actualizarHistorial();
@@ -579,7 +551,6 @@
       }, 1000);
     });
 
-    // Inicializar fecha
     const ahora = new Date();
     const año = ahora.getFullYear();
     const mes = String(ahora.getMonth() + 1).padStart(2, '0');
