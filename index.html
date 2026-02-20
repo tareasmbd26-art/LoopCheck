@@ -264,15 +264,14 @@
   </button>
 
   <p class="text-center text-muted mt-2" style="font-size:0.7rem;">
-    <i class="bi bi-shield-check me-1"></i>Las fallas se guardan localmente hasta que las envías
+    <i class="bi bi-shield-check me-1"></i>Datos solo en memoria, al recargar se reinician
   </p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Función principal inmediata
   (function() {
-    // Obtener elementos
+    // Obtener elementos del DOM
     const tipoFalla = document.getElementById('tipo_falla');
     const customWrapper = document.getElementById('customFallaWrapper');
     const fallaCustom = document.getElementById('falla_custom');
@@ -289,29 +288,10 @@
     const historialContainer = document.getElementById('historialContainer');
     const contadorSpan = document.getElementById('contadorFallas');
 
-    // Array de fallas
+    // Array de fallas (SOLO EN MEMORIA, no guarda en localStorage)
     let fallas = [];
 
-    // Cargar fallas guardadas
-    function cargarFallas() {
-      const guardadas = localStorage.getItem('fallasApp');
-      if (guardadas) {
-        try {
-          fallas = JSON.parse(guardadas);
-        } catch (e) {
-          fallas = [];
-        }
-      }
-      actualizarHistorial();
-    }
-
-    // Guardar fallas
-    function guardarFallas() {
-      localStorage.setItem('fallasApp', JSON.stringify(fallas));
-      actualizarHistorial();
-    }
-
-    // Mostrar mensaje
+    // Función para mostrar mensajes tipo toast
     function mostrarMensaje(texto, exito) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
@@ -321,7 +301,7 @@
       new bootstrap.Toast(toast).show();
     }
 
-    // Formatear fecha
+    // Formatear fecha de YYYY-MM-DDTHH:mm a DD/MM/AA HH:mm
     function formatearFecha(fechaHoraStr) {
       if (!fechaHoraStr) return '—';
       const [fecha, hora] = fechaHoraStr.split('T');
@@ -329,7 +309,7 @@
       return `${d}/${m}/${y.slice(2)} ${hora}`;
     }
 
-    // Actualizar historial en pantalla
+    // Actualizar el historial en pantalla
     function actualizarHistorial() {
       if (fallas.length === 0) {
         historialContainer.innerHTML = '<p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>';
@@ -348,15 +328,15 @@
         html += `
           <div class="historial-item">
             <div class="linea-superior">
-              <span>Nodo ${String(f.nodo).padStart(2, '0')}</span>
-              <span>${f.sitio}</span>
+              <span><i class="bi bi-hdd-stack-fill me-1"></i>Nodo ${String(f.nodo).padStart(2, '0')}</span>
+              <span><i class="bi bi-geo-alt-fill me-1"></i>${f.sitio}</span>
             </div>
-            <div class="linea-inferior">
+            <div class="linea-inferior mt-1">
               <span class="badge-falla">${tipoFinal}</span>
               <span>${f.dispositivo}</span>
               <span><strong>${puntoFinal}</strong></span>
               <span>${f.lazo}</span>
-              <span class="fecha-hora">${formatearFecha(f.fechaHora)}</span>
+              <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${formatearFecha(f.fechaHora)}</span>
             </div>
           </div>
         `;
@@ -366,34 +346,39 @@
       contadorSpan.innerText = `${fallas.length} ${fallas.length === 1 ? 'registro' : 'registros'}`;
     }
 
-    // Función para agregar falla (CORREGIDA)
+    // Función para agregar una falla al historial
     function agregarFalla() {
-      // Validaciones simples
+      // Validar tipo de falla
       if (!tipoFalla.value) {
         mostrarMensaje('Selecciona tipo de falla', false);
         return;
       }
       
+      // Validar dispositivo
       if (!dispositivo.value) {
         mostrarMensaje('Selecciona dispositivo', false);
         return;
       }
       
+      // Validar sitio
       if (!sitio.value.trim()) {
         mostrarMensaje('Escribe el sitio', false);
         return;
       }
       
+      // Validar nodo
       if (!nodo.value || nodo.value < 1 || nodo.value > 64) {
-        mostrarMensaje('Nodo debe ser 1-64', false);
+        mostrarMensaje('Nodo debe ser entre 1 y 64', false);
         return;
       }
       
+      // Validar punto número
       if (!puntoNum.value || puntoNum.value < 0 || puntoNum.value > 159) {
-        mostrarMensaje('Punto debe ser 000-159', false);
+        mostrarMensaje('Punto debe ser entre 000 y 159', false);
         return;
       }
       
+      // Validar lazo (radio)
       let lazoSeleccionado = null;
       for (let radio of lazoRadios) {
         if (radio.checked) {
@@ -406,12 +391,13 @@
         return;
       }
       
+      // Validar fecha y hora
       if (!fechaHora.value) {
         mostrarMensaje('Selecciona fecha y hora', false);
         return;
       }
 
-      // Manejar "Otros"
+      // Manejar el caso "Otros"
       let tipoFinal = tipoFalla.value;
       let customValue = '';
       if (tipoFalla.value === 'Otros') {
@@ -435,12 +421,14 @@
         fechaHora: fechaHora.value
       };
 
-      // Agregar y guardar
+      // Agregar al array
       fallas.push(nuevaFalla);
-      guardarFallas();
       
-      // Mostrar éxito
-      mostrarMensaje('✅ Falla agregada', true);
+      // Actualizar historial
+      actualizarHistorial();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('✅ Falla agregada al historial', true);
 
       // Resetear formulario
       form.reset();
@@ -457,7 +445,44 @@
       fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
     }
 
-    // Evento para "Otros"
+    // Función para enviar a Google Sheets
+    async function enviarLista() {
+      if (fallas.length === 0) {
+        mostrarMensaje('No hay fallas para enviar', false);
+        return;
+      }
+
+      // Deshabilitar botón
+      btnEnviar.disabled = true;
+      btnEnviar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+      try {
+        // ⚠️ CAMBIA ESTA URL POR LA DE TU GOOGLE SHEETS
+        const response = await fetch('https://tu-url-de-google-sheets.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fallas: fallas })
+        });
+
+        if (response.ok) {
+          mostrarMensaje('✅ Lista enviada correctamente', true);
+          // Limpiar historial después de enviar
+          fallas = [];
+          actualizarHistorial();
+        } else {
+          mostrarMensaje('Error al enviar. Intenta de nuevo.', false);
+        }
+      } catch (error) {
+        mostrarMensaje('Error de conexión. Verifica tu URL.', false);
+        console.error(error);
+      } finally {
+        // Restaurar botón
+        btnEnviar.disabled = false;
+        btnEnviar.innerHTML = '<i class="bi bi-send-fill me-2"></i>Enviar lista a Google Sheets';
+      }
+    }
+
+    // Evento para mostrar campo "Otros"
     tipoFalla.addEventListener('change', () => {
       if (tipoFalla.value === 'Otros') {
         customWrapper.style.display = 'block';
@@ -472,46 +497,13 @@
     // Evento click del botón Agregar
     btnAgregar.addEventListener('click', agregarFalla);
 
-    // Prevenir envío del form
+    // Prevenir envío del formulario
     form.addEventListener('submit', (e) => e.preventDefault());
 
-    // Enviar a Google Sheets
-    btnEnviar.addEventListener('click', async () => {
-      if (fallas.length === 0) {
-        mostrarMensaje('No hay fallas para enviar', false);
-        return;
-      }
+    // Evento click del botón Enviar
+    btnEnviar.addEventListener('click', enviarLista);
 
-      btnEnviar.disabled = true;
-      btnEnviar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-
-      try {
-        // CAMBIA ESTA URL
-        const res = await fetch('https://script.google.com/macros/s/AKfycbyDx1kdgwce01azr8Cg4FfDM7cwiA0s4EXJyZBfdhnr1O4sunkqV5TmYB8NNVZDN0Uesg/exec', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fallas })
-        });
-
-        if (res.ok) {
-          mostrarMensaje('✅ Enviado a Google Sheets', true);
-          fallas = [];
-          guardarFallas();
-        } else {
-          mostrarMensaje('Error al enviar', false);
-        }
-      } catch (error) {
-        mostrarMensaje('Error de conexión', false);
-      } finally {
-        btnEnviar.disabled = false;
-        btnEnviar.innerHTML = '<i class="bi bi-send-fill me-2"></i>Enviar lista a Google Sheets';
-      }
-    });
-
-    // Inicializar
-    cargarFallas();
-    
-    // Poner fecha/hora actual
+    // Inicializar fecha/hora actual
     const ahora = new Date();
     const año = ahora.getFullYear();
     const mes = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -519,6 +511,9 @@
     const horas = String(ahora.getHours()).padStart(2, '0');
     const minutos = String(ahora.getMinutes()).padStart(2, '0');
     fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+
+    // Inicializar historial vacío
+    actualizarHistorial();
   })();
 </script>
 </body>
