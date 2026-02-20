@@ -121,6 +121,17 @@
       width: 90%;
       max-width: 420px;
     }
+    .punto-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .punto-group select {
+      width: 70px;
+    }
+    .punto-group input {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -195,18 +206,31 @@
         </div>
       </div>
 
-      <!-- Laso y Fecha + Hora -->
+      <!-- Punto: M / S + número -->
+      <div class="mb-2">
+        <label class="form-label">Punto</label>
+        <div class="punto-group">
+          <select class="form-select" id="punto_tipo" required>
+            <option value="M">M (Módulo)</option>
+            <option value="S">S (Sensor)</option>
+          </select>
+          <input type="number" class="form-control" id="punto_num" placeholder="000-159" min="0" max="159" step="1" required />
+        </div>
+        <div class="nodo-label-hint mt-1">Valor entre 000 y 159</div>
+      </div>
+
+      <!-- LAZO y Fecha + Hora -->
       <div class="row g-2 mb-3">
         <div class="col-4">
-          <label class="form-label">Laso</label>
+          <label class="form-label">Lazo</label>
           <div class="d-flex gap-3 mt-1">
             <div class="form-check">
-              <input class="form-check-input" type="radio" name="laso" id="lasoL1" value="L1" required />
-              <label class="form-check-label fw-semibold" for="lasoL1">L1</label>
+              <input class="form-check-input" type="radio" name="lazo" id="lazoL1" value="L1" required />
+              <label class="form-check-label fw-semibold" for="lazoL1">L1</label>
             </div>
             <div class="form-check">
-              <input class="form-check-input" type="radio" name="laso" id="lasoL2" value="L2" />
-              <label class="form-check-label fw-semibold" for="lasoL2">L2</label>
+              <input class="form-check-input" type="radio" name="lazo" id="lazoL2" value="L2" />
+              <label class="form-check-label fw-semibold" for="lazoL2">L2</label>
             </div>
           </div>
         </div>
@@ -216,7 +240,7 @@
         </div>
       </div>
 
-      <!-- BOTÓN 1: Agregar al historial (solo local) -->
+      <!-- BOTÓN 1: Agregar al historial -->
       <button type="button" class="btn btn-submit btn-danger w-100 text-white mb-2" id="btnAgregarHistorial">
         <i class="bi bi-plus-circle-fill me-2"></i>Agregar al historial
       </button>
@@ -230,7 +254,7 @@
       <span class="text-muted small" id="contadorFallas">0 registros</span>
     </div>
     <div id="historialContainer" style="max-height: 300px; overflow-y: auto;">
-      <p class="text-muted text-center small py-3" id="sinFallasMsg">Aún no hay fallas registradas</p>
+      <p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>
     </div>
   </div>
 
@@ -246,98 +270,93 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // Función principal inmediata
   (function() {
-    // Elementos del formulario
+    // Obtener elementos
     const tipoFalla = document.getElementById('tipo_falla');
     const customWrapper = document.getElementById('customFallaWrapper');
     const fallaCustom = document.getElementById('falla_custom');
     const sitio = document.getElementById('sitio');
     const nodo = document.getElementById('nodo');
     const dispositivo = document.getElementById('dispositivo');
-    const lasoRadios = document.getElementsByName('laso');
+    const puntoTipo = document.getElementById('punto_tipo');
+    const puntoNum = document.getElementById('punto_num');
+    const lazoRadios = document.getElementsByName('lazo');
     const fechaHora = document.getElementById('fecha_hora');
-
-    // Botones
+    const form = document.getElementById('faultForm');
     const btnAgregar = document.getElementById('btnAgregarHistorial');
     const btnEnviar = document.getElementById('btnEnviarLista');
-
-    // Contenedor historial
     const historialContainer = document.getElementById('historialContainer');
     const contadorSpan = document.getElementById('contadorFallas');
 
-    // Array de fallas (storage)
+    // Array de fallas
     let fallas = [];
 
-    // Toast
-    function showToast(msg, success) {
-      const toastEl = document.getElementById('toast');
-      const toastMsg = document.getElementById('toastMsg');
-      toastEl.classList.remove('bg-success', 'bg-danger');
-      toastEl.classList.add(success ? 'bg-success' : 'bg-danger', 'text-white');
-      toastMsg.textContent = msg;
-      const toast = new bootstrap.Toast(toastEl);
-      toast.show();
-    }
-
-    // Cargar del localStorage
+    // Cargar fallas guardadas
     function cargarFallas() {
-      const stored = localStorage.getItem('fallasExtraccion');
-      if (stored) {
+      const guardadas = localStorage.getItem('fallasApp');
+      if (guardadas) {
         try {
-          fallas = JSON.parse(stored);
+          fallas = JSON.parse(guardadas);
         } catch (e) {
           fallas = [];
         }
-      } else {
-        fallas = [];
       }
-      renderizarHistorial();
+      actualizarHistorial();
     }
 
-    // Guardar en localStorage
+    // Guardar fallas
     function guardarFallas() {
-      localStorage.setItem('fallasExtraccion', JSON.stringify(fallas));
-      renderizarHistorial();
+      localStorage.setItem('fallasApp', JSON.stringify(fallas));
+      actualizarHistorial();
+    }
+
+    // Mostrar mensaje
+    function mostrarMensaje(texto, exito) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toast.classList.remove('bg-success', 'bg-danger');
+      toast.classList.add(exito ? 'bg-success' : 'bg-danger', 'text-white');
+      toastMsg.textContent = texto;
+      new bootstrap.Toast(toast).show();
     }
 
     // Formatear fecha
-    function formatearFechaHora(datetimeStr) {
-      if (!datetimeStr) return '—';
-      const [fecha, hora] = datetimeStr.split('T');
-      const [yyyy, mm, dd] = fecha.split('-');
-      return `${dd}/${mm}/${yyyy.slice(2)} ${hora}`;
+    function formatearFecha(fechaHoraStr) {
+      if (!fechaHoraStr) return '—';
+      const [fecha, hora] = fechaHoraStr.split('T');
+      const [y, m, d] = fecha.split('-');
+      return `${d}/${m}/${y.slice(2)} ${hora}`;
     }
 
-    // Renderizar historial
-    function renderizarHistorial() {
+    // Actualizar historial en pantalla
+    function actualizarHistorial() {
       if (fallas.length === 0) {
-        historialContainer.innerHTML = `<p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>`;
+        historialContainer.innerHTML = '<p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>';
         contadorSpan.innerText = '0 registros';
         return;
       }
 
-      const fallasOrdenadas = [...fallas].sort((a, b) => {
-        if (a.fechaHora < b.fechaHora) return 1;
-        if (a.fechaHora > b.fechaHora) return -1;
-        return 0;
-      });
+      // Ordenar por fecha (más reciente primero)
+      const ordenadas = [...fallas].sort((a, b) => (a.fechaHora < b.fechaHora ? 1 : -1));
 
       let html = '';
-      fallasOrdenadas.forEach((f, index) => {
-        const tipoMostrar = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
-        const fechaFormateada = formatearFechaHora(f.fechaHora);
-
+      ordenadas.forEach(f => {
+        const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+        const puntoFinal = `${f.puntoTipo}${String(f.puntoNum).padStart(3, '0')}`;
+        
         html += `
-          <div class="historial-item" data-index="${index}">
+          <div class="historial-item">
             <div class="linea-superior">
-              <span><i class="bi bi-hdd-stack-fill me-1"></i>Nodo ${f.nodo.toString().padStart(2,'0')}</span>
-              <span><i class="bi bi-geo-alt-fill me-1"></i>${f.sitio}</span>
+              <span>Nodo ${String(f.nodo).padStart(2, '0')}</span>
+              <span>${f.sitio}</span>
             </div>
-            <div class="linea-inferior mt-1">
-              <span class="badge-falla">${tipoMostrar}</span>
+            <div class="linea-inferior">
+              <span class="badge-falla">${tipoFinal}</span>
               <span>${f.dispositivo}</span>
-              <span>${f.laso}</span>
-              <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${fechaFormateada}</span>
+              <span><strong>${puntoFinal}</strong></span>
+              <span>${f.lazo}</span>
+              <span class="fecha-hora">${formatearFecha(f.fechaHora)}</span>
             </div>
           </div>
         `;
@@ -347,90 +366,88 @@
       contadorSpan.innerText = `${fallas.length} ${fallas.length === 1 ? 'registro' : 'registros'}`;
     }
 
-    // Validar y agregar nueva falla al historial
-    function agregarAlHistorial() {
-      // Validaciones
-      if (!tipoFalla.value) { showToast('Selecciona tipo de falla', false); return; }
-      if (!dispositivo.value) { showToast('Selecciona dispositivo', false); return; }
-      if (!sitio.value.trim()) { showToast('Sitio es obligatorio', false); return; }
-      if (!nodo.value || nodo.value < 1 || nodo.value > 64) { showToast('Nodo debe ser entre 1 y 64', false); return; }
+    // Función para agregar falla (CORREGIDA)
+    function agregarFalla() {
+      // Validaciones simples
+      if (!tipoFalla.value) {
+        mostrarMensaje('Selecciona tipo de falla', false);
+        return;
+      }
       
-      let lasoSeleccionado = null;
-      for (let radio of lasoRadios) {
-        if (radio.checked) { lasoSeleccionado = radio.value; break; }
+      if (!dispositivo.value) {
+        mostrarMensaje('Selecciona dispositivo', false);
+        return;
       }
-      if (!lasoSeleccionado) { showToast('Selecciona L1 o L2', false); return; }
-      if (!fechaHora.value) { showToast('Selecciona fecha y hora', false); return; }
-
-      // Tipo falla (custom si es Otros)
-      let tipoFinal = tipoFalla.value;
-      let fallaCustomValue = '';
-      if (tipoFalla.value === 'Otros') {
-        if (!fallaCustom.value.trim()) { showToast('Especifica el tipo de falla (Otros)', false); return; }
-        fallaCustomValue = fallaCustom.value.trim();
+      
+      if (!sitio.value.trim()) {
+        mostrarMensaje('Escribe el sitio', false);
+        return;
       }
-
-      const nuevaFalla = {
-        tipoFalla: tipoFinal,
-        fallaCustom: fallaCustomValue,
-        dispositivo: dispositivo.value,
-        sitio: sitio.value.trim(),
-        nodo: parseInt(nodo.value, 10),
-        laso: lasoSeleccionado,
-        fechaHora: fechaHora.value,
-      };
-
-      fallas.push(nuevaFalla);
-      guardarFallas();
-      showToast('Falla agregada al historial', true);
-
-      // Reset formulario
-      form.reset();
-      customWrapper.style.display = 'none';
-      fallaCustom.required = false;
-
-      // Dejar fecha/hora con valor por defecto (ahora)
-      setFechaHoraNow();
-    }
-
-    // Enviar lista a Google Sheets
-    async function enviarLista() {
-      if (fallas.length === 0) {
-        showToast('No hay fallas para enviar', false);
+      
+      if (!nodo.value || nodo.value < 1 || nodo.value > 64) {
+        mostrarMensaje('Nodo debe ser 1-64', false);
+        return;
+      }
+      
+      if (!puntoNum.value || puntoNum.value < 0 || puntoNum.value > 159) {
+        mostrarMensaje('Punto debe ser 000-159', false);
+        return;
+      }
+      
+      let lazoSeleccionado = null;
+      for (let radio of lazoRadios) {
+        if (radio.checked) {
+          lazoSeleccionado = radio.value;
+          break;
+        }
+      }
+      if (!lazoSeleccionado) {
+        mostrarMensaje('Selecciona L1 o L2', false);
+        return;
+      }
+      
+      if (!fechaHora.value) {
+        mostrarMensaje('Selecciona fecha y hora', false);
         return;
       }
 
-      // Deshabilitar botón mientras envía
-      btnEnviar.disabled = true;
-      btnEnviar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-
-      try {
-        // AQUÍ DEBES PONER TU URL DE GOOGLE SHEETS
-        const response = await fetch('https://tu-url-de-google-sheets.com', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fallas: fallas })
-        });
-
-        if (response.ok) {
-          showToast('Lista enviada correctamente a Google Sheets', true);
-          // Limpiar historial después de enviar
-          fallas = [];
-          guardarFallas();
-        } else {
-          showToast('Error al enviar. Intenta de nuevo.', false);
+      // Manejar "Otros"
+      let tipoFinal = tipoFalla.value;
+      let customValue = '';
+      if (tipoFalla.value === 'Otros') {
+        if (!fallaCustom.value.trim()) {
+          mostrarMensaje('Especifica el tipo de falla', false);
+          return;
         }
-      } catch (error) {
-        showToast('Error de conexión. Verifica tu URL.', false);
-        console.error(error);
-      } finally {
-        btnEnviar.disabled = false;
-        btnEnviar.innerHTML = '<i class="bi bi-send-fill me-2"></i>Enviar lista a Google Sheets';
+        customValue = fallaCustom.value.trim();
       }
-    }
 
-    // Inicializar fecha/hora actual
-    function setFechaHoraNow() {
+      // Crear objeto de falla
+      const nuevaFalla = {
+        tipoFalla: tipoFinal,
+        fallaCustom: customValue,
+        dispositivo: dispositivo.value,
+        sitio: sitio.value.trim(),
+        nodo: parseInt(nodo.value),
+        puntoTipo: puntoTipo.value,
+        puntoNum: parseInt(puntoNum.value),
+        lazo: lazoSeleccionado,
+        fechaHora: fechaHora.value
+      };
+
+      // Agregar y guardar
+      fallas.push(nuevaFalla);
+      guardarFallas();
+      
+      // Mostrar éxito
+      mostrarMensaje('✅ Falla agregada', true);
+
+      // Resetear formulario
+      form.reset();
+      customWrapper.style.display = 'none';
+      puntoTipo.value = 'M';
+      
+      // Poner fecha/hora actual
       const ahora = new Date();
       const año = ahora.getFullYear();
       const mes = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -440,10 +457,7 @@
       fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
     }
 
-    // Referencia al form para reset
-    const form = document.getElementById('faultForm');
-
-    // Evento para mostrar campo "Otros"
+    // Evento para "Otros"
     tipoFalla.addEventListener('change', () => {
       if (tipoFalla.value === 'Otros') {
         customWrapper.style.display = 'block';
@@ -455,15 +469,56 @@
       }
     });
 
-    // Evento botón Agregar al historial
-    btnAgregar.addEventListener('click', agregarAlHistorial);
+    // Evento click del botón Agregar
+    btnAgregar.addEventListener('click', agregarFalla);
 
-    // Evento botón Enviar lista
-    btnEnviar.addEventListener('click', enviarLista);
+    // Prevenir envío del form
+    form.addEventListener('submit', (e) => e.preventDefault());
 
-    // Al cargar la página
+    // Enviar a Google Sheets
+    btnEnviar.addEventListener('click', async () => {
+      if (fallas.length === 0) {
+        mostrarMensaje('No hay fallas para enviar', false);
+        return;
+      }
+
+      btnEnviar.disabled = true;
+      btnEnviar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+      try {
+        // CAMBIA ESTA URL
+        const res = await fetch('https://tu-url-google-sheets.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fallas })
+        });
+
+        if (res.ok) {
+          mostrarMensaje('✅ Enviado a Google Sheets', true);
+          fallas = [];
+          guardarFallas();
+        } else {
+          mostrarMensaje('Error al enviar', false);
+        }
+      } catch (error) {
+        mostrarMensaje('Error de conexión', false);
+      } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.innerHTML = '<i class="bi bi-send-fill me-2"></i>Enviar lista a Google Sheets';
+      }
+    });
+
+    // Inicializar
     cargarFallas();
-    setFechaHoraNow();
+    
+    // Poner fecha/hora actual
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    const dia = String(ahora.getDate()).padStart(2, '0');
+    const horas = String(ahora.getHours()).padStart(2, '0');
+    const minutos = String(ahora.getMinutes()).padStart(2, '0');
+    fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
   })();
 </script>
 </body>
