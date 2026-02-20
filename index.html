@@ -261,16 +261,18 @@
     </div>
   </div>
 
-  <!-- BOTÓN 2: Enviar por correo a mdmpgc@gmail.com -->
-  <form id="emailForm" action="https://formsubmit.co/mdmpgc@gmail.com" method="POST" target="_blank" class="email-form">
-    <input type="hidden" name="_subject" value="📋 Reporte de Fallas">
+  <!-- BOTÓN 2: Enviar por correo a mdmpgc@gmail.com (formato I2) -->
+  <form id="emailForm" action="https://formsubmit.co/9119f2bf5196fc4aad24904700985e90" method="POST" class="email-form">
+    <!-- Usamos el código que te dieron -->
+    <input type="hidden" name="_subject" value="📋 Reporte de Fallas - Formato I2">
+    <!-- Campo oculto para el cuerpo del mensaje -->
+    <input type="hidden" name="texto_fallas" id="textoFallasInput" value="">
+    <!-- Configuración para que FormSubmit no modifique el formato -->
     <input type="hidden" name="_template" value="table">
     <input type="hidden" name="_captcha" value="false">
-    <input type="hidden" name="_next" value="https://formsubmit.co/gracias">
-    <input type="hidden" name="datos_fallas" id="datosFallasInput" value="">
     
     <button type="submit" class="btn btn-success-custom w-100 text-white mb-2" id="btnEnviarEmail">
-      <i class="bi bi-envelope-fill me-2"></i>Enviar por correo a mdmpgc@gmail.com
+      <i class="bi bi-envelope-fill me-2"></i>Enviar por correo (formato I2)
     </button>
   </form>
 
@@ -297,7 +299,7 @@
     const btnAgregar = document.getElementById('btnAgregarHistorial');
     const btnEnviarEmail = document.getElementById('btnEnviarEmail');
     const emailForm = document.getElementById('emailForm');
-    const datosFallasInput = document.getElementById('datosFallasInput');
+    const textoFallasInput = document.getElementById('textoFallasInput');
     const historialContainer = document.getElementById('historialContainer');
     const contadorSpan = document.getElementById('contadorFallas');
 
@@ -314,12 +316,18 @@
       new bootstrap.Toast(toast).show();
     }
 
-    // Formatear fecha
-    function formatearFecha(fechaHoraStr) {
+    // Formatear fecha como en I2 (DD/MM/AA HH:MM:SS)
+    function formatearFechaI2(fechaHoraStr) {
       if (!fechaHoraStr) return '—';
       const [fecha, hora] = fechaHoraStr.split('T');
       const [y, m, d] = fecha.split('-');
-      return `${d}/${m}/${y.slice(2)} ${hora}`;
+      // Añadir segundos ":00" fijos para que coincida con I2
+      return `${d}/${m}/${y.slice(2)} ${hora}:00`;
+    }
+
+    // Formatear punto como M000 o S000
+    function formatearPunto(tipo, numero) {
+      return `${tipo}${String(numero).padStart(3, '0')}`;
     }
 
     // Actualizar historial
@@ -335,7 +343,8 @@
       let html = '';
       ordenadas.forEach(f => {
         const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
-        const puntoFinal = `${f.puntoTipo}${String(f.puntoNum).padStart(3, '0')}`;
+        const puntoFinal = formatearPunto(f.puntoTipo, f.puntoNum);
+        const fechaFormateada = formatearFechaI2(f.fechaHora);
         
         html += `
           <div class="historial-item">
@@ -348,7 +357,7 @@
               <span>${f.dispositivo}</span>
               <span><strong>${puntoFinal}</strong></span>
               <span>${f.lazo}</span>
-              <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${formatearFecha(f.fechaHora)}</span>
+              <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${fechaFormateada}</span>
             </div>
           </div>
         `;
@@ -411,31 +420,33 @@
       fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
     }
 
-    // Preparar datos para el correo
-    function prepararDatosParaEmail() {
+    // Preparar texto con formato IGUAL a I2
+    function prepararTextoI2() {
       if (fallas.length === 0) {
         mostrarMensaje('No hay fallas para enviar', false);
-        return false;
+        return null;
       }
 
-      // Crear un texto con todas las fallas
-      let textoFallas = "📋 REPORTE DE FALLAS\n\n";
+      let textoCompleto = '';
+      
       fallas.forEach((f, index) => {
         const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
-        const puntoFinal = `${f.puntoTipo}${String(f.puntoNum).padStart(3, '0')}`;
+        const puntoFinal = formatearPunto(f.puntoTipo, f.puntoNum);
+        const fechaFormateada = formatearFechaI2(f.fechaHora);
         
-        textoFallas += `--- FALLA ${index + 1} ---\n`;
-        textoFallas += `Tipo: ${tipoFinal}\n`;
-        textoFallas += `Dispositivo: ${f.dispositivo}\n`;
-        textoFallas += `Sitio: ${f.sitio}\n`;
-        textoFallas += `Nodo: ${f.nodo}\n`;
-        textoFallas += `Punto: ${puntoFinal}\n`;
-        textoFallas += `Lazo: ${f.lazo}\n`;
-        textoFallas += `Fecha/Hora: ${formatearFecha(f.fechaHora)}\n\n`;
+        // Primera línea: Tipo de falla y dispositivo (como en I2)
+        textoCompleto += `${tipoFinal}    ${f.dispositivo}    ${f.lazo}${puntoFinal} ${fechaFormateada}\n\n`;
+        
+        // Segunda línea: Node y sitio (como en I2)
+        textoCompleto += `Node${String(f.nodo).padStart(2, '0')} - ${f.sitio}\n\n`;
+        
+        // Línea separadora opcional
+        if (index < fallas.length - 1) {
+          textoCompleto += `----------------------------------------\n\n`;
+        }
       });
 
-      datosFallasInput.value = textoFallas;
-      return true;
+      return textoCompleto;
     }
 
     // Evento "Otros"
@@ -454,16 +465,25 @@
     btnAgregar.addEventListener('click', agregarFalla);
     form.addEventListener('submit', (e) => e.preventDefault());
 
-    // Evento Enviar por correo
+    // Evento Enviar por correo - FORMATO I2
     btnEnviarEmail.addEventListener('click', (e) => {
-      if (!prepararDatosParaEmail()) {
-        e.preventDefault();
-        return false;
-      }
-      // Pequeña pausa para asegurar que el input se llenó
+      e.preventDefault(); // Prevenir envío inmediato
+      
+      const textoI2 = prepararTextoI2();
+      if (!textoI2) return;
+      
+      // Poner el texto en el campo oculto
+      textoFallasInput.value = textoI2;
+      
+      // Enviar el formulario
+      emailForm.submit();
+      
+      // Opcional: limpiar después de enviar
       setTimeout(() => {
-        emailForm.submit();
-      }, 100);
+        fallas = [];
+        actualizarHistorial();
+        mostrarMensaje('✅ Enviado y lista limpiada', true);
+      }, 1000);
     });
 
     // Inicializar fecha
