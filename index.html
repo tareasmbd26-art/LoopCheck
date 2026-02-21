@@ -60,6 +60,22 @@
       font-weight: 700;
       padding: 0.7rem;
     }
+    .btn-warning-custom {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+    }
+    .btn-danger-custom {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+    }
     .section-badge {
       display: inline-block;
       background: var(--primary);
@@ -71,8 +87,9 @@
       margin-bottom: 0.5rem;
       text-transform: uppercase;
     }
-    #customFallaWrapper, #customDispositivoWrapper {
+    .custom-field {
       display: none;
+      margin-top: 0.5rem;
     }
     .historial-item {
       background: white;
@@ -82,6 +99,18 @@
       border-left: 5px solid var(--accent);
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       font-size: 0.9rem;
+      position: relative;
+    }
+    .historial-item.editing {
+      border-left: 5px solid #f39c12;
+      background-color: #fff9e6;
+    }
+    .item-actions {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 5px;
     }
     .linea-superior {
       display: flex;
@@ -89,6 +118,7 @@
       font-weight: 600;
       color: var(--primary);
       flex-wrap: wrap;
+      padding-right: 60px;
     }
     .linea-inferior {
       display: flex;
@@ -96,6 +126,7 @@
       color: #2c3e50;
       flex-wrap: wrap;
       align-items: baseline;
+      padding-right: 60px;
     }
     .badge-falla {
       background: #eef2f6;
@@ -138,6 +169,30 @@
       padding: 15px;
       margin-bottom: 15px;
     }
+    .tabla-convencional {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .tabla-convencional th {
+      background-color: var(--primary);
+      color: white;
+      padding: 8px;
+      font-size: 0.8rem;
+    }
+    .tabla-convencional td {
+      padding: 8px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .edit-mode-indicator {
+      background-color: #f39c12;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -158,7 +213,7 @@
 
 <div class="container py-2 px-3" style="max-width: 560px;">
 
-  <!-- DATOS DEL PROYECTO -->
+  <!-- DATOS DEL PROYECTO (con fecha) -->
   <div class="card p-3 mb-4">
     <div class="datos-proyecto">
       <span class="section-badge"><i class="bi bi-folder-fill me-1"></i>Datos del proyecto</span>
@@ -171,122 +226,70 @@
           <label class="form-label">Técnico responsable</label>
           <input type="text" class="form-control" id="tecnico" placeholder="Ej: John Doe" required />
         </div>
+        <div class="col-12 mt-2">
+          <label class="form-label">Fecha de extracción</label>
+          <input type="date" class="form-control" id="fechaExtraccion" required />
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- formulario de captura -->
+  <!-- TIPO DE SISTEMA Y MARCA DEL PANEL -->
+  <div class="card p-3 mb-4">
+    <span class="section-badge"><i class="bi bi-diagram-3-fill me-1"></i>Configuración del sistema</span>
+    
+    <div class="mb-3">
+      <label class="form-label">Tipo de sistema</label>
+      <select class="form-select" id="tipoSistema" required>
+        <option value="" disabled selected>— Seleccionar —</option>
+        <option value="inteligente">Inteligente</option>
+        <option value="hibrido">Híbrido</option>
+        <option value="convencional">Convencional</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Marca del panel</label>
+      <select class="form-select" id="marcaPanel" required>
+        <option value="" disabled selected>— Seleccionar —</option>
+      </select>
+      <div id="customMarcaWrapper" class="custom-field">
+        <input type="text" class="form-control" id="marca_custom" placeholder="Especificar marca..." maxlength="100" />
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO DE CAPTURA (cambia según sistema) -->
   <div class="card p-3 mb-4">
     <form id="faultForm" novalidate>
-
       <span class="section-badge"><i class="bi bi-pencil-fill me-1"></i>Nueva falla</span>
-
-      <!-- Tipo falla -->
-      <div class="mb-2">
-        <label class="form-label">Tipo de falla</label>
-        <select class="form-select" id="tipo_falla" required>
-          <option value="" disabled selected>— Seleccionar —</option>
-          <option>Missing</option>
-          <option>Extra Addr</option>
-          <option>Fault</option>
-          <option>Extra Addr No Device</option>
-          <option>WRONG TYPE</option>
-          <option>NODE MSNG</option>
-          <option>NETWK FLT</option>
-          <option>Otros</option>
-        </select>
-        <div id="customFallaWrapper" class="mt-2">
-          <input type="text" class="form-control" id="falla_custom" placeholder="Especificar tipo de falla..." maxlength="100" />
-        </div>
+      
+      <!-- Indicador de modo edición -->
+      <div id="editModeIndicator" class="edit-mode-indicator">
+        <i class="bi bi-pencil-fill me-1"></i> Editando falla <span id="editIndex"></span>
+        <button type="button" class="btn btn-sm btn-light ms-2" id="cancelEdit">Cancelar</button>
       </div>
 
-      <!-- Dispositivo -->
-      <div class="mb-2">
-        <label class="form-label">Dispositivo</label>
-        <select class="form-select" id="dispositivo" required>
-          <option value="" disabled selected>— Seleccionar —</option>
-          <option>Photo Detector</option>
-          <option>Photo/Heat Detector</option>
-          <option>Thermal Det</option>
-          <option>Manual Stations</option>
-          <option>Nac Aom NS</option>
-          <option>FORM C AOM NS</option>
-          <option>Supervisory Sw</option>
-          <option>Waterflow Sil</option>
-          <option>N.O. Contacts</option>
-          <option>Trbl Ack Sw</option>
-          <option>Otros</option>
-        </select>
-        <div id="customDispositivoWrapper" class="mt-2">
-          <input type="text" class="form-control" id="dispositivo_custom" placeholder="Especificar dispositivo..." maxlength="100" />
-        </div>
-      </div>
+      <!-- Contenido dinámico según tipo de sistema -->
+      <div id="formularioDinamico"></div>
 
-      <!-- Sitio y Nodo -->
-      <div class="row g-2 mb-2">
-        <div class="col-7">
-          <label class="form-label">Sitio</label>
-          <input type="text" class="form-control" id="sitio" placeholder="Ej: Edificio Central" maxlength="80" required />
-        </div>
-        <div class="col-5">
-          <label class="form-label">Nodo (1-64)</label>
-          <input type="number" class="form-control" id="nodo" placeholder="01" min="1" max="64" required />
-        </div>
-      </div>
-
-      <!-- Punto: M / S + número -->
-      <div class="mb-2">
-        <label class="form-label">Punto</label>
-        <div class="punto-group">
-          <select class="form-select" id="punto_tipo" required>
-            <option value="M">M (Módulo)</option>
-            <option value="S">S (Sensor)</option>
-          </select>
-          <input type="number" class="form-control" id="punto_num" placeholder="000-159" min="0" max="159" step="1" required />
-        </div>
-        <div class="nodo-label-hint mt-1">Valor entre 000 y 159</div>
-      </div>
-
-      <!-- LAZO y Fecha + Hora -->
-      <div class="row g-2 mb-3">
-        <div class="col-4">
-          <label class="form-label">Lazo</label>
-          <div class="d-flex gap-3 mt-1">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="lazo" id="lazoL1" value="L1" required />
-              <label class="form-check-label fw-semibold" for="lazoL1">L1</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="lazo" id="lazoL2" value="L2" />
-              <label class="form-check-label fw-semibold" for="lazoL2">L2</label>
-            </div>
-          </div>
-        </div>
-        <div class="col-8">
-          <label class="form-label">Fecha y hora</label>
-          <input type="datetime-local" class="form-control" id="fecha_hora" required />
-        </div>
-      </div>
-
-      <!-- BOTÓN 1: Agregar al historial -->
+      <!-- BOTÓN 1: Agregar al historial (cambia a "Actualizar" en modo edición) -->
       <button type="button" class="btn btn-submit btn-danger w-100 text-white mb-2" id="btnAgregarHistorial">
         <i class="bi bi-plus-circle-fill me-2"></i>Agregar al historial
       </button>
     </form>
   </div>
 
-  <!-- HISTORIAL DE FALLAS -->
+  <!-- HISTORIAL DE FALLAS CON OPCIONES DE EDICIÓN/ELIMINACIÓN -->
   <div class="card p-3 mb-3">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <span class="section-badge"><i class="bi bi-clock-history me-1"></i>Últimas fallas</span>
       <span class="text-muted small" id="contadorFallas">0 registros</span>
     </div>
-    <div id="historialContainer" style="max-height: 300px; overflow-y: auto;">
-      <p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>
-    </div>
+    <div id="historialContainer" style="max-height: 400px; overflow-y: auto;"></div>
   </div>
 
-  <!-- BOTÓN 2: Enviar por correo a mdmpgc@gmail.com -->
+  <!-- BOTÓN 2: Enviar por correo -->
   <form id="emailForm" action="https://formsubmit.co/9119f2bf5196fc4aad24904700985e90" method="POST" class="email-form">
     <input type="hidden" name="_subject" id="asuntoCorreo" value="">
     <input type="hidden" name="texto_fallas" id="textoFallasInput" value="">
@@ -294,7 +297,7 @@
     <input type="hidden" name="_captcha" value="false">
     
     <button type="submit" class="btn btn-success-custom w-100 text-white mb-2" id="btnEnviarEmail">
-      <i class="bi bi-envelope-fill me-2"></i>Enviar por correo (formato I2)
+      <i class="bi bi-envelope-fill me-2"></i>Enviar por correo
     </button>
   </form>
 
@@ -306,22 +309,15 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   (function() {
-    // Elementos
+    // Elementos principales
     const proyecto = document.getElementById('proyecto');
     const tecnico = document.getElementById('tecnico');
-    const tipoFalla = document.getElementById('tipo_falla');
-    const customWrapper = document.getElementById('customFallaWrapper');
-    const fallaCustom = document.getElementById('falla_custom');
-    const dispositivo = document.getElementById('dispositivo');
-    const customDispositivoWrapper = document.getElementById('customDispositivoWrapper');
-    const dispositivoCustom = document.getElementById('dispositivo_custom');
-    const sitio = document.getElementById('sitio');
-    const nodo = document.getElementById('nodo');
-    const puntoTipo = document.getElementById('punto_tipo');
-    const puntoNum = document.getElementById('punto_num');
-    const lazoRadios = document.getElementsByName('lazo');
-    const fechaHora = document.getElementById('fecha_hora');
-    const form = document.getElementById('faultForm');
+    const fechaExtraccion = document.getElementById('fechaExtraccion');
+    const tipoSistema = document.getElementById('tipoSistema');
+    const marcaPanel = document.getElementById('marcaPanel');
+    const customMarcaWrapper = document.getElementById('customMarcaWrapper');
+    const marcaCustom = document.getElementById('marca_custom');
+    const formularioDinamico = document.getElementById('formularioDinamico');
     const btnAgregar = document.getElementById('btnAgregarHistorial');
     const btnEnviarEmail = document.getElementById('btnEnviarEmail');
     const emailForm = document.getElementById('emailForm');
@@ -329,9 +325,91 @@
     const textoFallasInput = document.getElementById('textoFallasInput');
     const historialContainer = document.getElementById('historialContainer');
     const contadorSpan = document.getElementById('contadorFallas');
+    const editModeIndicator = document.getElementById('editModeIndicator');
+    const editIndexSpan = document.getElementById('editIndex');
+    const cancelEditBtn = document.getElementById('cancelEdit');
+
+    // Variable para controlar modo edición
+    let editingIndex = -1;
+
+    // Arrays de opciones para marcas
+    const marcasInteligentes = [
+      'GameWell-FCI E3',
+      'GameWell-FCI S3',
+      'SilentKnight 6820',
+      'SilentKnight 5820',
+      'Mircom FX-400',
+      'Mircom FX-401',
+      'Mircom FX-3500',
+      'Mircom FX-3318',
+      'Otros'
+    ];
+
+    const marcasConvencionales = [
+      'SilentKnight 5208',
+      'SilentKnight SK-4',
+      'SilentKnight SK-2',
+      'Mircom FA-1000',
+      'Mircom FA-300',
+      'Mircom FA-106R',
+      'Otros'
+    ];
+
+    // Tipos de falla para sistema inteligente/híbrido
+    const tiposFallaInteligente = [
+      'Missing',
+      'Extra Addr',
+      'Fault',
+      'Extra Addr No Device',
+      'WRONG TYPE',
+      'NODE MSNG',
+      'NETWK FLT',
+      'Open Ckt',
+      'Short',
+      'Low Charger',
+      'Fault Charger',
+      'No Aux Pwr',
+      'Alarm',
+      'Off Normal',
+      'Otros'
+    ];
+
+    // Tipos de falla para sistema convencional
+    const tiposFallaConvencional = [
+      'Open Ckt',
+      'Alarm',
+      'Short',
+      'Low Charger',
+      'Fault Charger',
+      'No Aux Pwr',
+      'Otros'
+    ];
+
+    // Dispositivos para inteligente/híbrido
+    const dispositivos = [
+      'Photo Detector',
+      'Photo/Heat Detector',
+      'Thermal Det',
+      'Manual Stations',
+      'Nac Aom NS',
+      'FORM C AOM NS',
+      'Supervisory Sw',
+      'Waterflow Sil',
+      'N.O. Contacts',
+      'Trbl Ack Sw',
+      'Otros'
+    ];
 
     let fallas = [];
 
+    // Inicializar fecha actual
+    const hoy = new Date();
+    const año = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    fechaExtraccion.value = `${año}-${mes}-${dia}`;
+
+    // Mostrar mensaje
     function mostrarMensaje(texto, exito) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
@@ -341,17 +419,521 @@
       new bootstrap.Toast(toast).show();
     }
 
-    function formatearFechaI2(fechaHoraStr) {
-      if (!fechaHoraStr) return '—';
-      const [fecha, hora] = fechaHoraStr.split('T');
-      const [y, m, d] = fecha.split('-');
-      return `${d}/${m}/${y.slice(2)} ${hora}:00`;
+    // Formatear fecha para mostrar
+    function formatearFechaParaMostrar(fechaStr) {
+      if (!fechaStr) return '';
+      const [y, m, d] = fechaStr.split('-');
+      return `${d}/${m}/${y}`;
     }
 
-    function formatearPunto(tipo, numero) {
-      return `${tipo}${String(numero).padStart(3, '0')}`;
+    // Actualizar opciones de marca según tipo de sistema
+    function actualizarMarcas() {
+      const tipo = tipoSistema.value;
+      let opciones = [];
+      
+      if (tipo === 'inteligente' || tipo === 'hibrido') {
+        opciones = marcasInteligentes;
+      } else if (tipo === 'convencional') {
+        opciones = marcasConvencionales;
+      }
+
+      marcaPanel.innerHTML = '<option value="" disabled selected>— Seleccionar —</option>';
+      opciones.forEach(opcion => {
+        const option = document.createElement('option');
+        option.value = opcion;
+        option.textContent = opcion;
+        marcaPanel.appendChild(option);
+      });
     }
 
+    // Cancelar edición
+    function cancelarEdicion() {
+      editingIndex = -1;
+      editModeIndicator.style.display = 'none';
+      btnAgregar.innerHTML = '<i class="bi bi-plus-circle-fill me-2"></i>Agregar al historial';
+      
+      // Resetear formulario
+      const tipo = tipoSistema.value;
+      if (tipo === 'inteligente' || tipo === 'hibrido') {
+        document.getElementById('tipo_falla').value = '';
+        document.getElementById('dispositivo').value = '';
+        document.getElementById('sitio').value = '';
+        document.getElementById('nodo').value = '';
+        document.getElementById('punto_num').value = '';
+        const lazoRadios = document.getElementsByName('lazo');
+        for (let radio of lazoRadios) { radio.checked = false; }
+        document.getElementById('customFallaWrapper').style.display = 'none';
+        document.getElementById('customDispositivoWrapper').style.display = 'none';
+        document.getElementById('falla_custom').value = '';
+        document.getElementById('dispositivo_custom').value = '';
+      } else if (tipo === 'convencional') {
+        document.getElementById('tipo_falla_convencional').value = '';
+        document.getElementById('zona').value = '';
+        document.getElementById('sitio_convencional').value = '';
+        document.getElementById('customFallaConvencionalWrapper').style.display = 'none';
+        document.getElementById('falla_convencional_custom').value = '';
+      }
+      
+      // Restaurar fecha/hora actual
+      const ahora = new Date();
+      const año = ahora.getFullYear();
+      const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+      const dia = String(ahora.getDate()).padStart(2, '0');
+      const horas = String(ahora.getHours()).padStart(2, '0');
+      const minutos = String(ahora.getMinutes()).padStart(2, '0');
+      
+      if (tipo === 'inteligente' || tipo === 'hibrido') {
+        const fechaHora = document.getElementById('fecha_hora');
+        if (fechaHora) fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+      } else if (tipo === 'convencional') {
+        const fechaHoraConv = document.getElementById('fecha_hora_convencional');
+        if (fechaHoraConv) fechaHoraConv.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+      }
+    }
+
+    cancelEditBtn.addEventListener('click', cancelarEdicion);
+
+    // Actualizar formulario según tipo de sistema
+    function actualizarFormulario() {
+      const tipo = tipoSistema.value;
+      let html = '';
+
+      if (tipo === 'inteligente' || tipo === 'hibrido') {
+        html = `
+          <!-- Tipo falla (inteligente) -->
+          <div class="mb-2">
+            <label class="form-label">Tipo de falla</label>
+            <select class="form-select" id="tipo_falla" required>
+              <option value="" disabled selected>— Seleccionar —</option>
+              ${tiposFallaInteligente.map(t => `<option>${t}</option>`).join('')}
+            </select>
+            <div id="customFallaWrapper" class="custom-field">
+              <input type="text" class="form-control" id="falla_custom" placeholder="Especificar tipo de falla..." maxlength="100" />
+            </div>
+          </div>
+
+          <!-- Dispositivo -->
+          <div class="mb-2">
+            <label class="form-label">Dispositivo</label>
+            <select class="form-select" id="dispositivo" required>
+              <option value="" disabled selected>— Seleccionar —</option>
+              ${dispositivos.map(d => `<option>${d}</option>`).join('')}
+            </select>
+            <div id="customDispositivoWrapper" class="custom-field">
+              <input type="text" class="form-control" id="dispositivo_custom" placeholder="Especificar dispositivo..." maxlength="100" />
+            </div>
+          </div>
+
+          <!-- Sitio y Nodo -->
+          <div class="row g-2 mb-2">
+            <div class="col-7">
+              <label class="form-label">Sitio</label>
+              <input type="text" class="form-control" id="sitio" placeholder="Ej: Edificio Central" maxlength="80" required />
+            </div>
+            <div class="col-5">
+              <label class="form-label">Nodo (1-64)</label>
+              <input type="number" class="form-control" id="nodo" placeholder="01" min="1" max="64" required />
+            </div>
+          </div>
+
+          <!-- Punto: M / S + número -->
+          <div class="mb-2">
+            <label class="form-label">Punto</label>
+            <div class="punto-group">
+              <select class="form-select" id="punto_tipo" required>
+                <option value="M">M (Módulo)</option>
+                <option value="S">S (Sensor)</option>
+              </select>
+              <input type="number" class="form-control" id="punto_num" placeholder="000-159" min="0" max="159" step="1" required />
+            </div>
+            <div class="nodo-label-hint mt-1">Valor entre 000 y 159</div>
+          </div>
+
+          <!-- LAZO y Fecha + Hora -->
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <label class="form-label">Lazo</label>
+              <div class="d-flex gap-3 mt-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="lazo" id="lazoL1" value="L1" required />
+                  <label class="form-check-label fw-semibold" for="lazoL1">L1</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="lazo" id="lazoL2" value="L2" />
+                  <label class="form-check-label fw-semibold" for="lazoL2">L2</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-8">
+              <label class="form-label">Fecha y hora</label>
+              <input type="datetime-local" class="form-control" id="fecha_hora" required />
+            </div>
+          </div>
+        `;
+      } else if (tipo === 'convencional') {
+        html = `
+          <!-- Tipo falla (convencional) -->
+          <div class="mb-2">
+            <label class="form-label">Tipo de falla</label>
+            <select class="form-select" id="tipo_falla_convencional" required>
+              <option value="" disabled selected>— Seleccionar —</option>
+              ${tiposFallaConvencional.map(t => `<option>${t}</option>`).join('')}
+            </select>
+            <div id="customFallaConvencionalWrapper" class="custom-field">
+              <input type="text" class="form-control" id="falla_convencional_custom" placeholder="Especificar tipo de falla..." maxlength="100" />
+            </div>
+          </div>
+
+          <!-- Zona -->
+          <div class="mb-2">
+            <label class="form-label">Zona</label>
+            <input type="text" class="form-control" id="zona" placeholder="Ej: 101, A3, 2B" required />
+          </div>
+
+          <!-- Sitio -->
+          <div class="mb-2">
+            <label class="form-label">Sitio</label>
+            <input type="text" class="form-control" id="sitio_convencional" placeholder="Ej: Edificio Central" maxlength="80" required />
+          </div>
+
+          <!-- Fecha y hora -->
+          <div class="mb-3">
+            <label class="form-label">Fecha y hora</label>
+            <input type="datetime-local" class="form-control" id="fecha_hora_convencional" required />
+          </div>
+        `;
+      }
+
+      formularioDinamico.innerHTML = html;
+      
+      // Agregar event listeners para campos "Otros"
+      if (tipo === 'inteligente' || tipo === 'hibrido') {
+        const tipoFallaSelect = document.getElementById('tipo_falla');
+        const customWrapper = document.getElementById('customFallaWrapper');
+        const fallaCustom = document.getElementById('falla_custom');
+        const dispositivoSelect = document.getElementById('dispositivo');
+        const customDispositivoWrapper = document.getElementById('customDispositivoWrapper');
+        const dispositivoCustom = document.getElementById('dispositivo_custom');
+
+        if (tipoFallaSelect) {
+          tipoFallaSelect.addEventListener('change', () => {
+            if (tipoFallaSelect.value === 'Otros') {
+              customWrapper.style.display = 'block';
+              fallaCustom.required = true;
+            } else {
+              customWrapper.style.display = 'none';
+              fallaCustom.required = false;
+              fallaCustom.value = '';
+            }
+          });
+        }
+
+        if (dispositivoSelect) {
+          dispositivoSelect.addEventListener('change', () => {
+            if (dispositivoSelect.value === 'Otros') {
+              customDispositivoWrapper.style.display = 'block';
+              dispositivoCustom.required = true;
+            } else {
+              customDispositivoWrapper.style.display = 'none';
+              dispositivoCustom.required = false;
+              dispositivoCustom.value = '';
+            }
+          });
+        }
+
+        // Inicializar fecha/hora
+        const ahora = new Date();
+        const año = ahora.getFullYear();
+        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+        const dia = String(ahora.getDate()).padStart(2, '0');
+        const horas = String(ahora.getHours()).padStart(2, '0');
+        const minutos = String(ahora.getMinutes()).padStart(2, '0');
+        const fechaHora = document.getElementById('fecha_hora');
+        if (fechaHora) fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+
+      } else if (tipo === 'convencional') {
+        const tipoFallaConvSelect = document.getElementById('tipo_falla_convencional');
+        const customFallaConvWrapper = document.getElementById('customFallaConvencionalWrapper');
+        const fallaConvCustom = document.getElementById('falla_convencional_custom');
+
+        if (tipoFallaConvSelect) {
+          tipoFallaConvSelect.addEventListener('change', () => {
+            if (tipoFallaConvSelect.value === 'Otros') {
+              customFallaConvWrapper.style.display = 'block';
+              fallaConvCustom.required = true;
+            } else {
+              customFallaConvWrapper.style.display = 'none';
+              fallaConvCustom.required = false;
+              fallaConvCustom.value = '';
+            }
+          });
+        }
+
+        // Inicializar fecha/hora
+        const ahora = new Date();
+        const año = ahora.getFullYear();
+        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+        const dia = String(ahora.getDate()).padStart(2, '0');
+        const horas = String(ahora.getHours()).padStart(2, '0');
+        const minutos = String(ahora.getMinutes()).padStart(2, '0');
+        const fechaHoraConv = document.getElementById('fecha_hora_convencional');
+        if (fechaHoraConv) fechaHoraConv.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+      }
+    }
+
+    // Evento para cambio de sistema
+    tipoSistema.addEventListener('change', () => {
+      actualizarMarcas();
+      actualizarFormulario();
+      customMarcaWrapper.style.display = 'none';
+      marcaCustom.required = false;
+      cancelarEdicion(); // Salir de modo edición si se cambia el sistema
+    });
+
+    // Evento para "Otros" en marca
+    marcaPanel.addEventListener('change', () => {
+      if (marcaPanel.value === 'Otros') {
+        customMarcaWrapper.style.display = 'block';
+        marcaCustom.required = true;
+      } else {
+        customMarcaWrapper.style.display = 'none';
+        marcaCustom.required = false;
+        marcaCustom.value = '';
+      }
+    });
+
+    // Función para cargar datos en el formulario para editar
+    function cargarParaEditar(index) {
+      const falla = fallas[index];
+      editingIndex = index;
+      
+      editModeIndicator.style.display = 'block';
+      editIndexSpan.textContent = index + 1;
+      btnAgregar.innerHTML = '<i class="bi bi-pencil-fill me-2"></i>Actualizar falla';
+
+      if (falla.tipoSistema === 'inteligente' || falla.tipoSistema === 'hibrido') {
+        document.getElementById('tipo_falla').value = falla.tipoFalla;
+        document.getElementById('dispositivo').value = falla.dispositivo;
+        document.getElementById('sitio').value = falla.sitio;
+        document.getElementById('nodo').value = falla.nodo;
+        document.getElementById('punto_tipo').value = falla.puntoTipo;
+        document.getElementById('punto_num').value = falla.puntoNum;
+        
+        // Seleccionar radio de lazo
+        const lazoRadios = document.getElementsByName('lazo');
+        for (let radio of lazoRadios) {
+          if (radio.value === falla.lazo) {
+            radio.checked = true;
+          }
+        }
+
+        // Manejar campos "Otros"
+        if (falla.tipoFalla === 'Otros') {
+          document.getElementById('customFallaWrapper').style.display = 'block';
+          document.getElementById('falla_custom').value = falla.fallaCustom || '';
+        }
+        
+        if (falla.dispositivo === 'Otros') {
+          document.getElementById('customDispositivoWrapper').style.display = 'block';
+          document.getElementById('dispositivo_custom').value = falla.dispositivoCustom || '';
+        }
+
+        document.getElementById('fecha_hora').value = falla.fechaHora;
+
+      } else if (falla.tipoSistema === 'convencional') {
+        document.getElementById('tipo_falla_convencional').value = falla.tipoFalla;
+        document.getElementById('zona').value = falla.zona;
+        document.getElementById('sitio_convencional').value = falla.sitio;
+        
+        if (falla.tipoFalla === 'Otros') {
+          document.getElementById('customFallaConvencionalWrapper').style.display = 'block';
+          document.getElementById('falla_convencional_custom').value = falla.fallaCustom || '';
+        }
+
+        document.getElementById('fecha_hora_convencional').value = falla.fechaHora;
+      }
+    }
+
+    // Función para eliminar falla
+    function eliminarFalla(index) {
+      if (confirm('¿Estás seguro de eliminar esta falla?')) {
+        fallas.splice(index, 1);
+        actualizarHistorial();
+        mostrarMensaje('✅ Falla eliminada', true);
+        
+        if (editingIndex === index) {
+          cancelarEdicion();
+        }
+      }
+    }
+
+    // Agregar o actualizar falla
+    function agregarOActualizarFalla() {
+      // Validar datos generales
+      if (!proyecto.value.trim()) { mostrarMensaje('Nombre del proyecto es obligatorio', false); return; }
+      if (!tecnico.value.trim()) { mostrarMensaje('Nombre del técnico es obligatorio', false); return; }
+      if (!fechaExtraccion.value) { mostrarMensaje('Fecha de extracción es obligatoria', false); return; }
+      if (!tipoSistema.value) { mostrarMensaje('Selecciona tipo de sistema', false); return; }
+      if (!marcaPanel.value) { mostrarMensaje('Selecciona marca del panel', false); return; }
+      if (marcaPanel.value === 'Otros' && !marcaCustom.value.trim()) {
+        mostrarMensaje('Especifica la marca del panel', false); return;
+      }
+
+      const tipo = tipoSistema.value;
+      
+      if (tipo === 'inteligente' || tipo === 'hibrido') {
+        // Validar campos específicos
+        const tipoFalla = document.getElementById('tipo_falla');
+        const dispositivo = document.getElementById('dispositivo');
+        const sitio = document.getElementById('sitio');
+        const nodo = document.getElementById('nodo');
+        const puntoTipo = document.getElementById('punto_tipo');
+        const puntoNum = document.getElementById('punto_num');
+        const lazoRadios = document.getElementsByName('lazo');
+        const fechaHora = document.getElementById('fecha_hora');
+        const fallaCustom = document.getElementById('falla_custom');
+        const dispositivoCustom = document.getElementById('dispositivo_custom');
+
+        if (!tipoFalla.value) { mostrarMensaje('Selecciona tipo de falla', false); return; }
+        if (!dispositivo.value) { mostrarMensaje('Selecciona dispositivo', false); return; }
+        if (dispositivo.value === 'Otros' && !dispositivoCustom.value.trim()) {
+          mostrarMensaje('Especifica el dispositivo', false); return;
+        }
+        if (!sitio.value.trim()) { mostrarMensaje('Escribe el sitio', false); return; }
+        if (!nodo.value || nodo.value < 1 || nodo.value > 64) { mostrarMensaje('Nodo debe ser 1-64', false); return; }
+        if (!puntoNum.value || puntoNum.value < 0 || puntoNum.value > 159) { mostrarMensaje('Punto debe ser 000-159', false); return; }
+        
+        let lazoSeleccionado = null;
+        for (let radio of lazoRadios) {
+          if (radio.checked) { lazoSeleccionado = radio.value; break; }
+        }
+        if (!lazoSeleccionado) { mostrarMensaje('Selecciona L1 o L2', false); return; }
+        if (!fechaHora.value) { mostrarMensaje('Selecciona fecha y hora', false); return; }
+
+        let tipoFinal = tipoFalla.value;
+        let fallaCustomValue = '';
+        if (tipoFalla.value === 'Otros') {
+          if (!fallaCustom.value.trim()) { mostrarMensaje('Especifica el tipo de falla', false); return; }
+          fallaCustomValue = fallaCustom.value.trim();
+        }
+
+        let dispositivoFinal = dispositivo.value;
+        let dispositivoCustomValue = '';
+        if (dispositivo.value === 'Otros') {
+          dispositivoCustomValue = dispositivoCustom.value.trim();
+        }
+
+        const nuevaFalla = {
+          tipoSistema: tipo,
+          marcaPanel: marcaPanel.value === 'Otros' ? marcaCustom.value.trim() : marcaPanel.value,
+          proyecto: proyecto.value.trim(),
+          tecnico: tecnico.value.trim(),
+          fechaExtraccion: fechaExtraccion.value,
+          tipoFalla: tipoFinal,
+          fallaCustom: fallaCustomValue,
+          dispositivo: dispositivoFinal,
+          dispositivoCustom: dispositivoCustomValue,
+          sitio: sitio.value.trim(),
+          nodo: parseInt(nodo.value),
+          puntoTipo: puntoTipo.value,
+          puntoNum: parseInt(puntoNum.value),
+          lazo: lazoSeleccionado,
+          fechaHora: fechaHora.value
+        };
+
+        if (editingIndex >= 0) {
+          // Actualizar
+          fallas[editingIndex] = nuevaFalla;
+          mostrarMensaje('✅ Falla actualizada', true);
+          cancelarEdicion();
+        } else {
+          // Agregar nueva
+          fallas.push(nuevaFalla);
+          mostrarMensaje('✅ Falla agregada', true);
+        }
+
+        // Resetear campos
+        tipoFalla.value = '';
+        dispositivo.value = '';
+        sitio.value = '';
+        nodo.value = '';
+        puntoNum.value = '';
+        for (let radio of lazoRadios) { radio.checked = false; }
+        document.getElementById('customFallaWrapper').style.display = 'none';
+        document.getElementById('customDispositivoWrapper').style.display = 'none';
+        fallaCustom.value = '';
+        dispositivoCustom.value = '';
+
+      } else if (tipo === 'convencional') {
+        // Validar campos convencionales
+        const tipoFalla = document.getElementById('tipo_falla_convencional');
+        const zona = document.getElementById('zona');
+        const sitio = document.getElementById('sitio_convencional');
+        const fechaHora = document.getElementById('fecha_hora_convencional');
+        const fallaCustom = document.getElementById('falla_convencional_custom');
+
+        if (!tipoFalla.value) { mostrarMensaje('Selecciona tipo de falla', false); return; }
+        if (!zona.value.trim()) { mostrarMensaje('Zona es obligatoria', false); return; }
+        if (!sitio.value.trim()) { mostrarMensaje('Sitio es obligatorio', false); return; }
+        if (!fechaHora.value) { mostrarMensaje('Selecciona fecha y hora', false); return; }
+
+        let tipoFinal = tipoFalla.value;
+        let fallaCustomValue = '';
+        if (tipoFalla.value === 'Otros') {
+          if (!fallaCustom.value.trim()) { mostrarMensaje('Especifica el tipo de falla', false); return; }
+          fallaCustomValue = fallaCustom.value.trim();
+        }
+
+        const nuevaFalla = {
+          tipoSistema: tipo,
+          marcaPanel: marcaPanel.value === 'Otros' ? marcaCustom.value.trim() : marcaPanel.value,
+          proyecto: proyecto.value.trim(),
+          tecnico: tecnico.value.trim(),
+          fechaExtraccion: fechaExtraccion.value,
+          tipoFalla: tipoFinal,
+          fallaCustom: fallaCustomValue,
+          zona: zona.value.trim(),
+          sitio: sitio.value.trim(),
+          fechaHora: fechaHora.value
+        };
+
+        if (editingIndex >= 0) {
+          // Actualizar
+          fallas[editingIndex] = nuevaFalla;
+          mostrarMensaje('✅ Falla actualizada', true);
+          cancelarEdicion();
+        } else {
+          // Agregar nueva
+          fallas.push(nuevaFalla);
+          mostrarMensaje('✅ Falla agregada', true);
+        }
+
+        // Resetear campos
+        tipoFalla.value = '';
+        zona.value = '';
+        sitio.value = '';
+        document.getElementById('customFallaConvencionalWrapper').style.display = 'none';
+        fallaCustom.value = '';
+      }
+
+      actualizarHistorial();
+
+      // Resetear fecha/hora
+      const ahora = new Date();
+      const año = ahora.getFullYear();
+      const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+      const dia = String(ahora.getDate()).padStart(2, '0');
+      const horas = String(ahora.getHours()).padStart(2, '0');
+      const minutos = String(ahora.getMinutes()).padStart(2, '0');
+      
+      if (tipo === 'inteligente' || tipo === 'hibrido') {
+        document.getElementById('fecha_hora').value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+      } else if (tipo === 'convencional') {
+        document.getElementById('fecha_hora_convencional').value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
+      }
+    }
+
+    // Actualizar historial en pantalla con botones de editar/eliminar
     function actualizarHistorial() {
       if (fallas.length === 0) {
         historialContainer.innerHTML = '<p class="text-muted text-center small py-3">Aún no hay fallas registradas</p>';
@@ -359,188 +941,155 @@
         return;
       }
 
-      const ordenadas = [...fallas].sort((a, b) => (a.fechaHora < b.fechaHora ? 1 : -1));
-
       let html = '';
-      ordenadas.forEach(f => {
-        const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
-        const dispositivoFinal = f.dispositivo === 'Otros' ? f.dispositivoCustom : f.dispositivo;
-        const puntoFinal = formatearPunto(f.puntoTipo, f.puntoNum);
-        const fechaFormateada = formatearFechaI2(f.fechaHora);
-        
-        html += `
-          <div class="historial-item">
-            <div class="linea-superior">
-              <span><i class="bi bi-hdd-stack-fill me-1"></i>Nodo ${String(f.nodo).padStart(2, '0')}</span>
-              <span><i class="bi bi-geo-alt-fill me-1"></i>${f.sitio}</span>
-            </div>
-            <div class="linea-inferior mt-1">
-              <span class="badge-falla">${tipoFinal}</span>
-              <span>${dispositivoFinal}</span>
-              <span><strong>${puntoFinal}</strong></span>
-              <span>${f.lazo}</span>
-              <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${fechaFormateada}</span>
-            </div>
+      fallas.forEach((f, index) => {
+        const acciones = `
+          <div class="item-actions">
+            <button class="btn-warning-custom btn-sm" onclick="window.editarFalla(${index})">
+              <i class="bi bi-pencil-fill"></i>
+            </button>
+            <button class="btn-danger-custom btn-sm" onclick="window.eliminarFalla(${index})">
+              <i class="bi bi-trash-fill"></i>
+            </button>
           </div>
         `;
+
+        if (f.tipoSistema === 'inteligente' || f.tipoSistema === 'hibrido') {
+          const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+          const dispositivoFinal = f.dispositivo === 'Otros' ? f.dispositivoCustom : f.dispositivo;
+          const puntoFinal = `${f.puntoTipo}${String(f.puntoNum).padStart(3, '0')}`;
+          const [fecha, hora] = f.fechaHora.split('T');
+          const [y, m, d] = fecha.split('-');
+          const fechaFormateada = `${d}/${m}/${y.slice(2)} ${hora}`;
+
+          html += `
+            <div class="historial-item ${editingIndex === index ? 'editing' : ''}">
+              ${acciones}
+              <div class="linea-superior">
+                <span><i class="bi bi-hdd-stack-fill me-1"></i>Nodo ${String(f.nodo).padStart(2, '0')}</span>
+                <span><i class="bi bi-geo-alt-fill me-1"></i>${f.sitio}</span>
+              </div>
+              <div class="linea-inferior mt-1">
+                <span class="badge-falla">${tipoFinal}</span>
+                <span>${dispositivoFinal}</span>
+                <span><strong>${puntoFinal}</strong></span>
+                <span>${f.lazo}</span>
+                <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${fechaFormateada}</span>
+              </div>
+            </div>
+          `;
+        } else {
+          const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+          const [fecha, hora] = f.fechaHora.split('T');
+          const [y, m, d] = fecha.split('-');
+          const fechaFormateada = `${d}/${m}/${y.slice(2)} ${hora}`;
+
+          html += `
+            <div class="historial-item ${editingIndex === index ? 'editing' : ''}">
+              ${acciones}
+              <div class="linea-superior">
+                <span><i class="bi bi-pin-map-fill me-1"></i>Zona: ${f.zona}</span>
+                <span><i class="bi bi-geo-alt-fill me-1"></i>${f.sitio}</span>
+              </div>
+              <div class="linea-inferior mt-1">
+                <span class="badge-falla">${tipoFinal}</span>
+                <span class="fecha-hora"><i class="bi bi-clock me-1"></i>${fechaFormateada}</span>
+              </div>
+            </div>
+          `;
+        }
       });
 
       historialContainer.innerHTML = html;
       contadorSpan.innerText = `${fallas.length} ${fallas.length === 1 ? 'registro' : 'registros'}`;
     }
 
-    function agregarFalla() {
-      if (!proyecto.value.trim()) { mostrarMensaje('Nombre del proyecto es obligatorio', false); return; }
-      if (!tecnico.value.trim()) { mostrarMensaje('Nombre del técnico es obligatorio', false); return; }
-      
-      if (!tipoFalla.value) { mostrarMensaje('Selecciona tipo de falla', false); return; }
-      if (!dispositivo.value) { mostrarMensaje('Selecciona dispositivo', false); return; }
-      if (dispositivo.value === 'Otros' && !dispositivoCustom.value.trim()) { 
-        mostrarMensaje('Especifica el dispositivo', false); 
-        return; 
-      }
-      
-      if (!sitio.value.trim()) { mostrarMensaje('Escribe el sitio', false); return; }
-      if (!nodo.value || nodo.value < 1 || nodo.value > 64) { mostrarMensaje('Nodo debe ser 1-64', false); return; }
-      if (!puntoNum.value || puntoNum.value < 0 || puntoNum.value > 159) { mostrarMensaje('Punto debe ser 000-159', false); return; }
-      
-      let lazoSeleccionado = null;
-      for (let radio of lazoRadios) {
-        if (radio.checked) { lazoSeleccionado = radio.value; break; }
-      }
-      if (!lazoSeleccionado) { mostrarMensaje('Selecciona L1 o L2', false); return; }
-      if (!fechaHora.value) { mostrarMensaje('Selecciona fecha y hora', false); return; }
+    // Hacer funciones globales para los botones
+    window.editarFalla = cargarParaEditar;
+    window.eliminarFalla = eliminarFalla;
 
-      let tipoFinal = tipoFalla.value;
-      let fallaCustomValue = '';
-      if (tipoFalla.value === 'Otros') {
-        if (!fallaCustom.value.trim()) { mostrarMensaje('Especifica el tipo de falla', false); return; }
-        fallaCustomValue = fallaCustom.value.trim();
-      }
-
-      let dispositivoFinal = dispositivo.value;
-      let dispositivoCustomValue = '';
-      if (dispositivo.value === 'Otros') {
-        dispositivoCustomValue = dispositivoCustom.value.trim();
-      }
-
-      const nuevaFalla = {
-        proyecto: proyecto.value.trim(),
-        tecnico: tecnico.value.trim(),
-        tipoFalla: tipoFinal,
-        fallaCustom: fallaCustomValue,
-        dispositivo: dispositivoFinal,
-        dispositivoCustom: dispositivoCustomValue,
-        sitio: sitio.value.trim(),
-        nodo: parseInt(nodo.value),
-        puntoTipo: puntoTipo.value,
-        puntoNum: parseInt(puntoNum.value),
-        lazo: lazoSeleccionado,
-        fechaHora: fechaHora.value
-      };
-
-      fallas.push(nuevaFalla);
-      actualizarHistorial();
-      mostrarMensaje('✅ Falla agregada', true);
-
-      // Reset
-      tipoFalla.value = '';
-      dispositivo.value = '';
-      sitio.value = '';
-      nodo.value = '';
-      puntoNum.value = '';
-      
-      for (let radio of lazoRadios) {
-        radio.checked = false;
-      }
-      
-      customWrapper.style.display = 'none';
-      customDispositivoWrapper.style.display = 'none';
-      fallaCustom.value = '';
-      dispositivoCustom.value = '';
-      puntoTipo.value = 'M';
-      
-      const ahora = new Date();
-      const año = ahora.getFullYear();
-      const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-      const dia = String(ahora.getDate()).padStart(2, '0');
-      const horas = String(ahora.getHours()).padStart(2, '0');
-      const minutos = String(ahora.getMinutes()).padStart(2, '0');
-      fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
-    }
-
-    // 🔥 CORREGIDO: Ahora primero Node, luego la falla
-    function prepararTextoI2() {
+    // Preparar texto para correo
+    function prepararTextoCorreo() {
       if (fallas.length === 0) {
         mostrarMensaje('No hay fallas para enviar', false);
         return null;
       }
 
-      if (!proyecto.value.trim() || !tecnico.value.trim()) {
-        mostrarMensaje('Completa proyecto y técnico', false);
-        return null;
-      }
+      // Obtener marca final
+      const marcaFinal = marcaPanel.value === 'Otros' ? marcaCustom.value.trim() : marcaPanel.value;
 
-      let textoCompleto = '';
-      
-      fallas.forEach((f, index) => {
-        const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
-        const dispositivoFinal = f.dispositivo === 'Otros' ? f.dispositivoCustom : f.dispositivo;
-        const puntoFinal = formatearPunto(f.puntoTipo, f.puntoNum);
-        const fechaFormateada = formatearFechaI2(f.fechaHora);
+      // Información del sistema
+      let textoCompleto = `INFORMACIÓN DEL SISTEMA\n`;
+      textoCompleto += `========================\n`;
+      textoCompleto += `Tipo de Sistema: ${tipoSistema.options[tipoSistema.selectedIndex].text}\n`;
+      textoCompleto += `Marca del Panel: ${marcaFinal}\n\n`;
+
+      // Detectar tipo de sistema de la primera falla (asumimos que todas son del mismo tipo)
+      const tipoSistemaFallas = fallas[0].tipoSistema;
+
+      if (tipoSistemaFallas === 'inteligente' || tipoSistemaFallas === 'hibrido') {
+        // Formato I2
+        textoCompleto += `FALLAS REGISTRADAS\n`;
+        textoCompleto += `==================\n\n`;
         
-        // PRIMERO: Node y sitio (como en I2)
-        textoCompleto += `Node${String(f.nodo).padStart(2, '0')} - ${f.sitio}\n\n`;
+        fallas.forEach((f, index) => {
+          const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+          const dispositivoFinal = f.dispositivo === 'Otros' ? f.dispositivoCustom : f.dispositivo;
+          const puntoFinal = `${f.puntoTipo}${String(f.puntoNum).padStart(3, '0')}`;
+          const [fecha, hora] = f.fechaHora.split('T');
+          const [y, m, d] = fecha.split('-');
+          const fechaFormateada = `${d}/${m}/${y.slice(2)} ${hora}:00`;
+          
+          textoCompleto += `Node${String(f.nodo).padStart(2, '0')} - ${f.sitio}\n\n`;
+          textoCompleto += `${tipoFinal}    ${dispositivoFinal}    ${f.lazo}${puntoFinal} ${fechaFormateada}\n\n`;
+          
+          if (index < fallas.length - 1) {
+            textoCompleto += `----------------------------------------\n\n`;
+          }
+        });
+      } else {
+        // Formato convencional (columnas)
+        textoCompleto += `LISTADO DE FALLAS - SISTEMA CONVENCIONAL\n`;
+        textoCompleto += `========================================\n\n`;
         
-        // SEGUNDO: Tipo de falla y dispositivo (como en I2)
-        textoCompleto += `${tipoFinal}    ${dispositivoFinal}    ${f.lazo}${puntoFinal} ${fechaFormateada}\n\n`;
+        // Encabezados de columnas
+        textoCompleto += `Falla\t\tZona\t\tSitio\t\tFecha\n`;
+        textoCompleto += `----\t\t----\t\t-----\t\t-----\n`;
         
-        if (index < fallas.length - 1) {
-          textoCompleto += `----------------------------------------\n\n`;
-        }
-      });
+        fallas.forEach(f => {
+          const tipoFinal = f.tipoFalla === 'Otros' ? f.fallaCustom : f.tipoFalla;
+          const [fecha, hora] = f.fechaHora.split('T');
+          const [y, m, d] = fecha.split('-');
+          const fechaFormateada = `${d}/${m}/${y.slice(2)} ${hora}`;
+          
+          textoCompleto += `${tipoFinal}\t\t${f.zona}\t\t${f.sitio}\t\t${fechaFormateada}\n`;
+        });
+      }
 
       return textoCompleto;
     }
 
-    tipoFalla.addEventListener('change', () => {
-      if (tipoFalla.value === 'Otros') {
-        customWrapper.style.display = 'block';
-        fallaCustom.required = true;
-      } else {
-        customWrapper.style.display = 'none';
-        fallaCustom.required = false;
-        fallaCustom.value = '';
-      }
-    });
+    // Evento Agregar/Actualizar
+    btnAgregar.addEventListener('click', agregarOActualizarFalla);
 
-    dispositivo.addEventListener('change', () => {
-      if (dispositivo.value === 'Otros') {
-        customDispositivoWrapper.style.display = 'block';
-        dispositivoCustom.required = true;
-      } else {
-        customDispositivoWrapper.style.display = 'none';
-        dispositivoCustom.required = false;
-        dispositivoCustom.value = '';
-      }
-    });
-
-    btnAgregar.addEventListener('click', agregarFalla);
-    form.addEventListener('submit', (e) => e.preventDefault());
-
+    // Evento Enviar por correo
     btnEnviarEmail.addEventListener('click', (e) => {
       e.preventDefault();
       
-      if (!proyecto.value.trim() || !tecnico.value.trim()) {
-        mostrarMensaje('Completa proyecto y técnico', false);
+      if (!proyecto.value.trim() || !tecnico.value.trim() || !fechaExtraccion.value) {
+        mostrarMensaje('Completa todos los datos del proyecto', false);
         return;
       }
       
-      const textoI2 = prepararTextoI2();
-      if (!textoI2) return;
+      const texto = prepararTextoCorreo();
+      if (!texto) return;
       
-      asuntoCorreo.value = `${proyecto.value.trim()} - ${tecnico.value.trim()}`;
-      textoFallasInput.value = textoI2;
+      // Formatear fecha para asunto
+      const fechaFormateada = formatearFechaParaMostrar(fechaExtraccion.value);
+      
+      // Crear asunto
+      asuntoCorreo.value = `${proyecto.value.trim()} - ${tecnico.value.trim()} - ${fechaFormateada}`;
+      textoFallasInput.value = texto;
       
       emailForm.submit();
       
@@ -548,17 +1097,13 @@
         fallas = [];
         actualizarHistorial();
         mostrarMensaje('✅ Enviado y lista limpiada', true);
+        cancelarEdicion();
       }, 1000);
     });
 
-    const ahora = new Date();
-    const año = ahora.getFullYear();
-    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-    const dia = String(ahora.getDate()).padStart(2, '0');
-    const horas = String(ahora.getHours()).padStart(2, '0');
-    const minutos = String(ahora.getMinutes()).padStart(2, '0');
-    fechaHora.value = `${año}-${mes}-${dia}T${horas}:${minutos}`;
-
+    // Inicializar
+    actualizarMarcas();
+    actualizarFormulario();
     actualizarHistorial();
   })();
 </script>
