@@ -30,7 +30,6 @@
     .form-label { font-weight: 600; font-size: 0.85rem; color: var(--primary); margin-bottom: 0.2rem; }
     .form-control, .form-select { border-radius: 10px; border: 1.5px solid #dce3ef; font-size: 0.95rem; }
     .btn-submit { background: linear-gradient(135deg, var(--accent), #c0392b); border: none; border-radius: 12px; font-weight: 700; padding: 0.7rem; }
-    .btn-success-custom { background: linear-gradient(135deg, #2a5f8f, #1a3c5e); border: none; border-radius: 12px; font-weight: 700; padding: 0.7rem; }
     .btn-procesar { background: linear-gradient(135deg, #27ae60, #1e8449); border: none; border-radius: 12px; font-weight: 700; padding: 0.7rem; }
     .btn-warning-custom { background: linear-gradient(135deg, #f39c12, #e67e22); border: none; border-radius: 8px; color: white; padding: 0.2rem 0.5rem; font-size: 0.7rem; }
     .btn-danger-custom { background: linear-gradient(135deg, #e74c3c, #c0392b); border: none; border-radius: 8px; color: white; padding: 0.2rem 0.5rem; font-size: 0.7rem; }
@@ -50,7 +49,6 @@
     .datos-proyecto { background-color: #e8f0fe; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
     .edit-mode-indicator { background-color: #f39c12; color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 10px; display: none; }
 
-    /* PANTALLA INICIAL */
     #pantallaInicial { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 1.5rem; }
     .opcion-btn { width: 100%; max-width: 400px; padding: 1.5rem; border-radius: 18px; border: 2px solid transparent; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
     .opcion-btn i { font-size: 2rem; }
@@ -58,7 +56,6 @@
     .opcion-btn.manual { background: linear-gradient(135deg, var(--accent), #c0392b); color: white; }
     .opcion-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
 
-    /* CARPETAS */
     .carpeta-item { background: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; border-left: 5px solid #2a5f8f; box-shadow: 0 2px 6px rgba(0,0,0,0.05); cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--primary); transition: all 0.15s; }
     .carpeta-item:hover { background: #e8f0fe; transform: translateX(3px); }
     .carpeta-item i { font-size: 1.2rem; color: #f39c12; }
@@ -68,7 +65,6 @@
     .upload-zone:hover { background: #e0ebff; }
     .upload-zone i { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
     .nueva-carpeta-form { display: none; margin-top: 0.5rem; }
-    #listaCarpetas { max-height: 200px; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -112,15 +108,11 @@
       <i class="bi bi-arrow-left-circle-fill"></i> Volver
     </button>
     <div class="card p-3 mb-3">
-      <span class="section-badge"><i class="bi bi-folder2-open me-1"></i>Carpeta INCENDIO — Nextcloud</span>
-      <p class="text-muted small mb-2">Selecciona la subcarpeta destino, luego elige tu archivo</p>
+      <span class="section-badge"><i class="bi bi-folder2-open me-1"></i>Carpeta INCENDIO → FALLOS S1</span>
+      <p class="text-muted small mb-2">Selecciona una subcarpeta dentro de FALLOS S1, luego elige tu archivo</p>
       <div id="carpetasAdjuntar">
-        <p class="text-muted small text-center py-3"><i class="bi bi-arrow-clockwise me-1"></i>Cargando carpetas...</p>
+        <p class="text-muted small text-center py-3"><i class="bi bi-arrow-clockwise me-1"></i>Cargando subcarpetas...</p>
       </div>
-      <!-- LISTA DE CARPETAS DESDE LA API (UL) -->
-      <hr>
-      <label class="form-label">Carpetas disponibles (API):</label>
-      <ul id="listaCarpetas" class="list-group mt-2"></ul>
     </div>
   </div>
 
@@ -204,7 +196,7 @@
     </button>
     <div class="card p-3 mb-3">
       <span class="section-badge"><i class="bi bi-folder2-open me-1"></i>¿Dónde guardar el archivo?</span>
-      <p class="text-muted small mb-3">Selecciona una subcarpeta de INCENDIO o crea una nueva</p>
+      <p class="text-muted small mb-3">Selecciona una subcarpeta dentro de FALLOS S1 o crea una nueva</p>
       <div id="listaCarpetasSubir"></div>
       <button class="btn btn-outline-primary btn-sm w-100 mt-2" id="btnMostrarNuevaCarpeta">
         <i class="bi bi-folder-plus me-1"></i>Crear nueva carpeta
@@ -222,17 +214,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // ==================== CONFIGURACIÓN ÚNICA ====================
+  // ==================== CONFIGURACIÓN ====================
   const API = "https://sallowly-acaudal-charissa.ngrok-free.dev";
   const HEADERS = { "ngrok-skip-browser-warning": "true" };
   const CARPETA_BASE = "INCENDIO";
+  const CARPETA_FALLOS = "FALLOS S1";  // <-- carpeta raíz de fallas
 
   let archivoParaSubir = null;
   let nombreArchivoSubir = "";
   let modoActual = "";
   let carpetaSeleccionadaAdj = null;
 
-  // ==================== FUNCIONES AUXILIARES ====================
+  // ==================== AUXILIARES ====================
   function mostrarMensaje(texto, exito) {
     const toast = document.getElementById('toast');
     const toastMsg = document.getElementById('toastMsg');
@@ -264,50 +257,13 @@
     }
   };
 
-  // ==================== FUNCIÓN PARA CARGAR CARPETAS (API) ====================
-  async function cargarCarpetas() {
-    const lista = document.getElementById("listaCarpetas");
-    if (!lista) return;
-    try {
-      const res = await fetch(`${API}/carpetas`, { headers: HEADERS });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const carpetas = await res.json();
-      lista.innerHTML = "";
-      if (carpetas.length === 0) {
-        lista.innerHTML = '<li class="list-group-item text-muted">No hay carpetas disponibles</li>';
-      } else {
-        carpetas.forEach(carpeta => {
-          const li = document.createElement("li");
-          li.className = "list-group-item d-flex justify-content-between align-items-center";
-          li.textContent = carpeta;
-          const btnUsar = document.createElement("button");
-          btnUsar.textContent = "Seleccionar";
-          btnUsar.className = "btn btn-sm btn-outline-primary";
-          btnUsar.onclick = () => {
-            if (modoActual === 'adjuntar') {
-              seleccionarCarpetaAdj(carpeta);
-            } else {
-              subirASubcarpeta(carpeta);
-            }
-          };
-          li.appendChild(btnUsar);
-          lista.appendChild(li);
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      lista.innerHTML = '<li class="list-group-item text-danger">Error cargando carpetas</li>';
-    }
-  }
-
-  // ==================== API DE CARPETAS Y ARCHIVOS ====================
+  // ==================== OBTENER SUBCARPETAS DE FALLOS S1 ====================
   async function obtenerSubcarpetas() {
     try {
-      const res = await fetch(`${API}/carpetas`, { headers: HEADERS });
+      // Usamos el endpoint /subcarpetas sin parámetro -> devuelve las carpetas dentro de FALLOS S1
+      const res = await fetch(`${API}/subcarpetas`, { headers: HEADERS });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const carpetas = await res.json();
-      // Filtrar solo las carpetas que están dentro de INCENDIO (si la API devuelve todas)
-      // Asumimos que la API devuelve las subcarpetas directamente.
       return carpetas;
     } catch (err) {
       console.error(err);
@@ -317,10 +273,11 @@
 
   async function crearCarpeta(nombre) {
     try {
+      // El servidor ya antepone FALLOS S1 si no está presente, pero enviamos solo el nombre
       const res = await fetch(`${API}/crear-carpeta`, {
         method: "POST",
         headers: { ...HEADERS, "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: `${CARPETA_BASE}/${nombre}` })
+        body: JSON.stringify({ nombre: nombre })  // nombre simple, ej: "Proyecto X"
       });
       return res.ok;
     } catch { return false; }
@@ -328,22 +285,23 @@
 
   async function subirArchivo(subcarpeta, nombreArchivo, contenido) {
     try {
+      // subcarpeta es el nombre de la carpeta DENTRO de FALLOS S1
       const res = await fetch(`${API}/subir`, {
         method: "POST",
         headers: { ...HEADERS, "Content-Type": "application/json" },
-        body: JSON.stringify({ carpeta: `${CARPETA_BASE}/${subcarpeta}`, nombreArchivo, contenido })
+        body: JSON.stringify({ carpeta: subcarpeta, nombreArchivo, contenido })
       });
       return res.ok;
     } catch { return false; }
   }
 
-  // ==================== CARGAR SUBCARPETAS (interfaz) ====================
+  // ==================== CARGAR SUBCARPETAS EN LAS VISTAS ====================
   async function cargarSubcarpetas(destino) {
     const contenedor = destino === 'adjuntar'
       ? document.getElementById('carpetasAdjuntar')
       : document.getElementById('listaCarpetasSubir');
 
-    contenedor.innerHTML = '<p class="text-muted small text-center py-2"><i class="bi bi-arrow-clockwise me-1"></i>Cargando...</p>';
+    contenedor.innerHTML = '<p class="text-muted small text-center py-2"><i class="bi bi-arrow-clockwise me-1"></i>Cargando subcarpetas...</p>';
 
     const subcarpetas = await obtenerSubcarpetas();
 
@@ -356,7 +314,7 @@
 
     if (destino === 'adjuntar') {
       if (subcarpetas.length === 0) {
-        html = '<p class="text-muted small text-center py-2">No hay subcarpetas aún.</p>';
+        html = '<p class="text-muted small text-center py-2">No hay subcarpetas dentro de FALLOS S1 aún.</p>';
       } else {
         subcarpetas.forEach(nombre => {
           html += `<div class="carpeta-item" id="adj_${nombre}" onclick="seleccionarCarpetaAdj('${nombre}')">
@@ -382,7 +340,6 @@
         <input type="file" id="fileInputAdj" style="display:none" accept=".txt,.pdf,.doc,.docx" />
       `;
       contenedor.innerHTML = html;
-
     } else {
       // modo manual: mostrar carpetas para subir
       if (subcarpetas.length === 0) {
@@ -418,10 +375,11 @@
       mostrarMensaje('Subiendo archivo...', true);
       const reader = new FileReader();
       reader.onload = async function(e) {
-        const ok = await subirArchivo(carpetaSeleccionadaAdj, file.name, e.target.result);
-        mostrarMensaje(ok ? `✅ "${file.name}" subido a ${carpetaSeleccionadaAdj}` : 'Error al subir el archivo', ok);
+        const contenidoBase64 = btoa(unescape(encodeURIComponent(e.target.result)));
+        const ok = await subirArchivo(carpetaSeleccionadaAdj, file.name, contenidoBase64);
+        mostrarMensaje(ok ? `✅ "${file.name}" subido a FALLOS S1/${carpetaSeleccionadaAdj}` : 'Error al subir el archivo', ok);
       };
-      reader.readAsText(file);
+      reader.readAsBinaryString(file);
     };
   };
 
@@ -435,17 +393,22 @@
     if (!nombre) { mostrarMensaje('Escribe un nombre', false); return; }
     mostrarMensaje('Creando carpeta...', true);
     const ok = await crearCarpeta(nombre);
-    if (ok) { mostrarMensaje(`✅ Carpeta "${nombre}" creada`, true); cargarSubcarpetas('adjuntar'); cargarCarpetas(); }
-    else mostrarMensaje('Error al crear carpeta', false);
+    if (ok) {
+      mostrarMensaje(`✅ Carpeta "${nombre}" creada dentro de FALLOS S1`, true);
+      cargarSubcarpetas('adjuntar');
+    } else {
+      mostrarMensaje('Error al crear carpeta', false);
+    }
   };
 
   // MANUAL: subir a subcarpeta seleccionada
   window.subirASubcarpeta = async function(nombre) {
     if (!archivoParaSubir || !nombreArchivoSubir) { mostrarMensaje('No hay archivo para subir', false); return; }
     mostrarMensaje('Subiendo archivo...', true);
-    const ok = await subirArchivo(nombre, nombreArchivoSubir, archivoParaSubir);
+    const contenidoBase64 = btoa(unescape(encodeURIComponent(archivoParaSubir)));
+    const ok = await subirArchivo(nombre, nombreArchivoSubir, contenidoBase64);
     if (ok) {
-      mostrarMensaje(`✅ Archivo subido a INCENDIO/${nombre}`, true);
+      mostrarMensaje(`✅ Archivo subido a INCENDIO/FALLOS S1/${nombre}`, true);
       setTimeout(window.volverInicio, 2000);
     } else {
       mostrarMensaje('Error al subir el archivo', false);
@@ -469,11 +432,15 @@
     if (!nombre) { mostrarMensaje('Escribe un nombre', false); return; }
     mostrarMensaje('Creando carpeta...', true);
     const ok = await crearCarpeta(nombre);
-    if (ok) { mostrarMensaje(`✅ Carpeta "${nombre}" creada`, true); cargarSubcarpetas('manual'); cargarCarpetas(); }
-    else mostrarMensaje('Error al crear carpeta', false);
+    if (ok) {
+      mostrarMensaje(`✅ Carpeta "${nombre}" creada dentro de FALLOS S1`, true);
+      cargarSubcarpetas('manual');
+    } else {
+      mostrarMensaje('Error al crear carpeta', false);
+    }
   });
 
-  // ==================== FORMULARIO MANUAL ====================
+  // ==================== FORMULARIO MANUAL (igual que antes) ====================
   const marcasInteligentes = ['GameWell-FCI E3','GameWell-FCI S3','SilentKnight 6820','SilentKnight 5820','Mircom FX-400','Mircom FX-401','Mircom FX-3500','Mircom FX-3318','Otros'];
   const marcasConvencionales = ['SilentKnight 5208','SilentKnight SK-4','SilentKnight SK-2','Mircom FA-1000','Mircom FA-300','Mircom FA-106R','Otros'];
   const tiposFallaInt = ['Missing','Extra Addr','Fault','Extra Addr No Device','WRONG TYPE','NODE MSNG','NETWK FLT','Open Ckt','Short','Low Charger','Fault Charger','No Aux Pwr','Alarm','Off Normal','Otros'];
@@ -483,7 +450,6 @@
   let fallas = [];
   let editingIndex = -1;
 
-  // Fecha inicial
   const hoy = new Date();
   document.getElementById('fechaExtraccion').value = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
 
@@ -797,20 +763,19 @@
       });
     }
 
-    archivoParaSubir=txt;
+    archivoParaSubir = txt;
     ocultarTodo();
     document.getElementById('vistaSubcarpetas').style.display='block';
     await cargarSubcarpetas('manual');
-    mostrarMensaje(`Archivo listo: ${nombreArchivoSubir}`,true);
+    mostrarMensaje(`Archivo listo: ${nombreArchivoSubir}`, true);
   });
 
   // ==================== INICIALIZACIÓN ====================
   document.addEventListener("DOMContentLoaded", () => {
-    cargarCarpetas();
     actualizarMarcas();
+    actualizarFormulario();
     actualizarHistorial();
   });
-
 </script>
 </body>
 </html>
