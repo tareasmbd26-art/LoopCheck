@@ -369,17 +369,29 @@
       <div class="text-muted small">Haz clic para elegir el archivo</div>`;
     zone.onclick = () => document.getElementById('fileInputAdj').click();
 
+    // **** CAMBIO CLAVE: Ahora usa readAsArrayBuffer para archivos binarios ****
     document.getElementById('fileInputAdj').onchange = async function() {
       const file = this.files[0];
       if (!file) return;
+
       mostrarMensaje('Subiendo archivo...', true);
+
       const reader = new FileReader();
       reader.onload = async function(e) {
-        const contenidoBase64 = btoa(unescape(encodeURIComponent(e.target.result)));
+        // Convierte ArrayBuffer a base64 sin corrupción
+        const arrayBuffer = e.target.result;
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        bytes.forEach(byte => binary += String.fromCharCode(byte));
+        const contenidoBase64 = btoa(binary);
+
         const ok = await subirArchivo(carpetaSeleccionadaAdj, file.name, contenidoBase64);
-        mostrarMensaje(ok ? `✅ "${file.name}" subido a FALLOS S1/${carpetaSeleccionadaAdj}` : 'Error al subir el archivo', ok);
+        mostrarMensaje(
+          ok ? `✅ "${file.name}" subido a FALLOS S1/${carpetaSeleccionadaAdj}` : 'Error al subir el archivo',
+          ok
+        );
       };
-      reader.readAsBinaryString(file);
+      reader.readAsArrayBuffer(file);
     };
   };
 
